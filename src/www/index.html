@@ -10,10 +10,483 @@
   <link rel="apple-touch-icon" href="./img/apple-touch-icon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <style>
   [v-cloak] {
     display: none;
+  }
+
+  /* ── Stealth Console Theme ────────────────────────────────── */
+
+  :root {
+    --accent: #0d9488;
+    --accent-hover: #0f766e;
+    --accent-light: #14b8a6;
+    --accent-glow: rgba(20, 184, 166, 0.25);
+    --accent-subtle: rgba(20, 184, 166, 0.08);
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --online: #34d399;
+    --online-glow: rgba(52, 211, 153, 0.4);
+    --surface-light: #ffffff;
+    --surface-light-hover: #f8fafc;
+    --surface-light-border: rgba(0, 0, 0, 0.06);
+    --bg-light: #f1f5f9;
+    --text-light: #1e293b;
+    --text-light-secondary: #64748b;
+    --text-light-muted: #94a3b8;
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  .dark {
+    --surface-dark: #0f172a;
+    --surface-dark-card: #1e293b;
+    --surface-dark-card-hover: #263349;
+    --surface-dark-border: rgba(255, 255, 255, 0.06);
+    --bg-dark: #020617;
+    --text-dark: #e2e8f0;
+    --text-dark-secondary: #94a3b8;
+    --text-dark-muted: #475569;
+  }
+
+  * {
+    font-family: var(--font-sans) !important;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--bg-light) !important;
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
+  }
+
+  .dark body {
+    background: var(--bg-dark) !important;
+  }
+
+  /* Subtle animated grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.015;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  .dark body::before {
+    opacity: 0.03;
+  }
+
+  /* ── Cards ─────────────────────────────────────────────────── */
+
+  .awg-card {
+    background: var(--surface-light);
+    border: 1px solid var(--surface-light-border);
+    border-radius: 16px;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .dark .awg-card {
+    background: var(--surface-dark-card);
+    border-color: var(--surface-dark-border);
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Accent color overrides ────────────────────────────────── */
+
+  .bg-red-800 {
+    background-color: var(--accent) !important;
+  }
+  .hover\:bg-red-800:hover,
+  .hover\:bg-red-700:hover {
+    background-color: var(--accent-hover) !important;
+  }
+  .dark .dark\:bg-red-800 {
+    background-color: var(--accent) !important;
+  }
+  .dark .dark\:hover\:bg-red-800:hover {
+    background-color: var(--accent-hover) !important;
+  }
+  .hover\:border-red-800:hover {
+    border-color: var(--accent) !important;
+  }
+  .focus\:border-red-800:focus,
+  .dark .dark\:focus\:border-red-800:focus {
+    border-color: var(--accent) !important;
+  }
+  .text-red-800 {
+    color: var(--accent) !important;
+  }
+  .bg-red-100 {
+    background-color: rgba(20, 184, 166, 0.1) !important;
+  }
+  .dark .dark\:bg-red-100 {
+    background-color: rgba(20, 184, 166, 0.15) !important;
+  }
+  .text-red-600 {
+    color: var(--danger) !important;
+  }
+  .bg-red-600 {
+    background-color: var(--danger) !important;
+  }
+  .dark .dark\:bg-red-600 {
+    background-color: var(--danger) !important;
+  }
+  .hover\:bg-red-700:hover {
+    background-color: var(--accent-hover) !important;
+  }
+
+  /* Delete button keeps red */
+  .awg-btn-danger {
+    background-color: var(--danger) !important;
+  }
+  .awg-btn-danger:hover {
+    background-color: var(--danger-hover) !important;
+  }
+
+  /* ── Online indicator ──────────────────────────────────────── */
+
+  .awg-online-ping {
+    background-color: rgba(52, 211, 153, 0.3) !important;
+  }
+
+  .awg-online-dot {
+    background-color: var(--online) !important;
+    box-shadow: 0 0 8px var(--online-glow);
+  }
+
+  /* ── Header ────────────────────────────────────────────────── */
+
+  .awg-title {
+    font-family: var(--font-sans) !important;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-size: 2rem;
+  }
+
+  .awg-subtitle {
+    font-family: var(--font-mono) !important;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-light-muted);
+    opacity: 0.7;
+  }
+
+  .dark .awg-subtitle {
+    color: var(--text-dark-muted);
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────── */
+
+  .awg-btn {
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .awg-btn:active {
+    transform: scale(0.97);
+  }
+
+  .awg-btn-primary {
+    background-color: var(--accent) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+
+  .awg-btn-primary:hover {
+    background-color: var(--accent-hover) !important;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    transform: translateY(-1px);
+  }
+
+  .awg-btn-primary:active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  /* Icon buttons */
+  .awg-icon-btn {
+    border-radius: 10px;
+    padding: 0.5rem;
+    transition: all 0.2s ease;
+    background: transparent;
+  }
+
+  .awg-icon-btn:hover {
+    background-color: var(--accent-subtle);
+    color: var(--accent-light);
+  }
+
+  .dark .awg-icon-btn:hover {
+    background-color: rgba(20, 184, 166, 0.12);
+    color: var(--accent-light);
+  }
+
+  /* ── Toggle switch ─────────────────────────────────────────── */
+
+  .awg-toggle-on {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+
+  .awg-toggle-off {
+    background: #cbd5e1 !important;
+  }
+
+  .dark .awg-toggle-off {
+    background: #334155 !important;
+  }
+
+  /* ── Client rows ───────────────────────────────────────────── */
+
+  .awg-client-row {
+    transition: background-color 0.15s ease;
+  }
+
+  .awg-client-row:hover {
+    background-color: rgba(0, 0, 0, 0.015);
+  }
+
+  .dark .awg-client-row:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  /* ── Monospace data ────────────────────────────────────────── */
+
+  .awg-mono {
+    font-family: var(--font-mono) !important;
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Avatar ────────────────────────────────────────────────── */
+
+  .awg-avatar {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    border-radius: 12px;
+  }
+
+  .dark .awg-avatar {
+    background: linear-gradient(135deg, #1e293b, #334155);
+  }
+
+  /* ── Inputs ────────────────────────────────────────────────── */
+
+  input[type="text"],
+  input[type="password"] {
+    font-family: var(--font-sans) !important;
+    border-radius: 10px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+  }
+
+  /* ── Modals ────────────────────────────────────────────────── */
+
+  .awg-modal-overlay {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .awg-modal {
+    border-radius: 20px !important;
+    border: 1px solid var(--surface-light-border);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .dark .awg-modal {
+    border-color: var(--surface-dark-border);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* ── Login page ────────────────────────────────────────────── */
+
+  .awg-login-card {
+    border-radius: 20px !important;
+    border: 1px solid var(--surface-light-border);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .dark .awg-login-card {
+    border-color: var(--surface-dark-border);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .awg-login-avatar {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+
+  /* ── Update banner ─────────────────────────────────────────── */
+
+  .awg-update-banner {
+    background: linear-gradient(135deg, var(--accent), #0891b2) !important;
+    border: none !important;
+    border-radius: 14px !important;
+  }
+
+  .awg-update-btn {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease !important;
+  }
+
+  .awg-update-btn:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  /* ── Scrollbar ─────────────────────────────────────────────── */
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+
+  /* ── Loading spinner ───────────────────────────────────────── */
+
+  .awg-spinner {
+    color: var(--accent) !important;
+  }
+
+  /* ── Fade-in animation ─────────────────────────────────────── */
+
+  @keyframes awg-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .awg-fade-in {
+    animation: awg-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  /* Staggered children */
+  .awg-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .awg-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+  .awg-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+  .awg-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+  .awg-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+  .awg-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+  .awg-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+  .awg-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+  .awg-stagger > *:nth-child(9) { animation-delay: 0.45s; }
+  .awg-stagger > *:nth-child(10) { animation-delay: 0.5s; }
+
+  /* ── Disabled state ────────────────────────────────────────── */
+
+  .is-disabled {
+    opacity: 0.35;
+    cursor: not-allowed !important;
+  }
+
+  /* ── QR Code modal ─────────────────────────────────────────── */
+
+  .awg-qr-card {
+    border-radius: 20px;
+    padding: 2rem;
+    background: white;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ── Responsive tweaks ─────────────────────────────────────── */
+
+  @media (max-width: 640px) {
+    .awg-title {
+      font-size: 1.5rem;
+    }
+  }
+
+  /* ── Dark mode card header border ──────────────────────────── */
+
+  .awg-card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .awg-card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* ── Header toolbar buttons ────────────────────────────────── */
+
+  .awg-toolbar-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    color: #64748b;
+  }
+
+  .awg-toolbar-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1e293b;
+  }
+
+  .dark .awg-toolbar-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+  }
+
+  .dark .awg-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+  }
+
+  /* ── Version badge ─────────────────────────────────────────── */
+
+  .awg-version {
+    font-family: var(--font-mono) !important;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 </style>
 
@@ -21,38 +494,39 @@
   <div id="app">
     <div v-cloak class="container mx-auto max-w-3xl px-3 md:px-0 mt-4 xs:mt-6">
       <div v-if="authenticated === true">
-        <div class="flex flex-col-reverse xxs:flex-row flex-auto items-center items-end gap-3">
-          <h1 class="text-4xl dark:text-neutral-200 font-medium flex-grow self-start mb-4">
-            <img src="./img/logo.svg" width="60" class="inline align-middle dark:bg mr-2" /><span class="align-middle">AmneziaWG</span>
+        <div class="flex flex-col-reverse xxs:flex-row flex-auto items-center items-end gap-3 awg-fade-in">
+          <h1 class="dark:text-neutral-200 flex-grow self-start mb-4 flex items-center gap-3">
+            <img src="./img/logo.svg" width="44" class="inline dark:bg" />
+            <div>
+              <span class="awg-title">AmneziaWG</span>
+              <div class="awg-subtitle">secure tunnel</div>
+            </div>
           </h1>
-          <div class="flex items-center grow-0 gap-3 items-end self-end xxs:self-center">
+          <div class="flex items-center grow-0 gap-2 items-end self-end xxs:self-center">
             <!-- Dark / light theme -->
             <button @click="toggleTheme"
-              class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 transition" :title="$t(`theme.${uiTheme}`)">
+              class="awg-toolbar-btn transition" :title="$t(`theme.${uiTheme}`)">
               <svg v-if="uiTheme === 'light'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                 class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
               </svg>
               <svg v-else-if="uiTheme === 'dark'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                class="w-5 h-5 text-neutral-400">
+                class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
               </svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" 
-                class="w-5 h-5 fill-gray-600 dark:fill-neutral-400">
+              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"
+                class="w-5 h-5">
                 <path
                   d="M12,2.2c-5.4,0-9.8,4.4-9.8,9.8s4.4,9.8,9.8,9.8s9.8-4.4,9.8-9.8S17.4,2.2,12,2.2z M3.8,12c0-4.5,3.7-8.2,8.2-8.2v16.5C7.5,20.2,3.8,16.5,3.8,12z" />
               </svg>
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" />
-              </svg>
             </button>
             <!-- Show / hide charts -->
-            <label v-if="uiChartType > 0" class="inline-flex items-center justify-center cursor-pointer w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 whitespace-nowrap transition group" :title="$t('toggleCharts')">
+            <label v-if="uiChartType > 0" class="awg-toolbar-btn cursor-pointer whitespace-nowrap transition group" :title="$t('toggleCharts')">
               <input type="checkbox" value="" class="sr-only peer" v-model="uiShowCharts" @change="toggleCharts">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" fill="currentColor"
-                class="w-5 h-5 peer fill-gray-400 peer-checked:fill-gray-600 dark:fill-neutral-600 peer-checked:dark:fill-neutral-400 group-hover:dark:fill-neutral-500 transition">
+                class="w-5 h-5 peer fill-gray-400 peer-checked:fill-gray-600 dark:fill-neutral-600 peer-checked:dark:fill-neutral-400 transition">
                   <path
                     d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 19.875v-6.75Z" />
               </svg>
@@ -70,29 +544,29 @@
         </div>
         <div class="text-sm text-gray-400 dark:text-neutral-400 mb-5"></div>
         <div v-if="latestRelease"
-          class="bg-red-800 dark:bg-red-100 p-4 text-white dark:text-red-600 text-sm font-small mb-10 rounded-md shadow-lg"
+          class="awg-update-banner p-4 text-white text-sm font-small mb-10 rounded-md shadow-lg awg-fade-in"
           :title="`v${currentRelease} → v${latestRelease.version}`">
           <div class="container mx-auto flex flex-row flex-auto items-center">
             <div class="flex-grow">
               <p class="font-bold">{{$t("updateAvailable")}}</p>
-              <p>{{latestRelease.changelog}}</p>
+              <p style="opacity: 0.85">{{latestRelease.changelog}}</p>
             </div>
 
-            <a href="https://github.com/spcfox/amnezia-wg-easy#updating" target="_blank"
-              class="p-3 rounded-md bg-white dark:bg-red-100 float-right font-sm font-semibold text-red-800 dark:text-red-600 flex-shrink-0 border-2 border-red-800 dark:border-red-600 hover:border-white dark:hover:border-red-600 hover:text-white dark:hover:text-red-100 hover:bg-red-800 dark:hover:bg-red-600 transition-all">
+            <a href="https://github.com/creatorofuniverses/amnezia-wg-easy#updating" target="_blank"
+              class="awg-update-btn p-3 float-right font-sm font-semibold flex-shrink-0 transition-all">
               {{$t("update")}} →
             </a>
           </div>
         </div>
 
-        <div class="shadow-md rounded-lg bg-white dark:bg-neutral-700 overflow-hidden">
-          <div class="flex flex-row flex-auto items-center p-3 px-5 border-b-2 border-gray-100 dark:border-neutral-600">
+        <div class="awg-card awg-fade-in" style="animation-delay: 0.1s">
+          <div class="flex flex-row flex-auto items-center p-3 px-5 awg-card-header">
             <div class="flex-grow">
-              <p class="text-2xl font-medium dark:text-neutral-200">{{$t("clients")}}</p>
+              <p class="text-2xl font-semibold dark:text-neutral-200" style="letter-spacing: -0.02em">{{$t("clients")}}</p>
             </div>
             <div class="flex-shrink-0">
               <button @click="clientCreate = true; clientCreateName = '';"
-                class="hover:bg-red-800 hover:border-red-800 hover:text-white text-gray-700 dark:text-neutral-200 border-2 border-gray-100 dark:border-neutral-600 py-2 px-4 rounded inline-flex items-center transition">
+                class="awg-btn awg-btn-primary py-2 px-4 inline-flex items-center">
                 <svg class="w-4 mr-2" inline xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -103,10 +577,11 @@
             </div>
           </div>
 
-          <div>
+          <div class="awg-stagger">
             <!-- Client -->
             <div v-if="clients && clients.length > 0" v-for="client in clients" :key="client.id"
-              class="relative overflow-hidden border-b last:border-b-0 border-gray-100 dark:border-neutral-600 border-solid">
+              class="awg-client-row awg-fade-in relative overflow-hidden border-b last:border-b-0 border-gray-100 dark:border-neutral-600 border-solid"
+              style="border-color: var(--surface-light-border)">
 
               <!-- Chart -->
               <div v-if="uiChartType" class="absolute z-0 bottom-0 left-0 right-0 h-6" >
@@ -123,20 +598,20 @@
                 <div class="flex gap-3 md:gap-4 w-full items-center ">
 
                   <!-- Avatar -->
-                  <div class="h-10 w-10 mt-2 self-start rounded-full bg-gray-50 relative">
-                    <svg class="w-6 m-2 text-gray-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                  <div class="awg-avatar h-10 w-10 mt-2 self-start relative flex-shrink-0" style="min-width: 2.5rem">
+                    <svg class="w-6 m-2 text-gray-300 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                       fill="currentColor">
                       <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
                         clip-rule="evenodd" />
                     </svg>
-                    <img v-if="client.avatar" :src="client.avatar" class="w-10 rounded-full absolute top-0 left-0" />
+                    <img v-if="client.avatar" :src="client.avatar" class="w-10 absolute top-0 left-0" style="border-radius: 12px" />
 
                     <div
                       v-if="client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
                       <div
-                        class="animate-ping w-4 h-4 p-1 bg-red-100 dark:bg-red-100 rounded-full absolute -bottom-1 -right-1">
+                        class="animate-ping w-4 h-4 p-1 awg-online-ping rounded-full absolute -bottom-1 -right-1">
                       </div>
-                      <div class="w-2 h-2 bg-red-800 dark:bg-red-600 rounded-full absolute bottom-0 right-0"></div>
+                      <div class="w-2 h-2 awg-online-dot rounded-full absolute bottom-0 right-0"></div>
                     </div>
                   </div>
 
@@ -145,7 +620,7 @@
 
                     <!-- Name -->
                     <div class="flex flex-col flex-grow gap-1">
-                      <div class="text-gray-700 dark:text-neutral-200 group text-sm md:text-base"
+                      <div class="text-gray-700 dark:text-neutral-200 group text-sm md:text-base font-medium"
                         :title="$t('createdOn') + dateTime(new Date(client.createdAt))">
 
                         <!-- Show -->
@@ -170,7 +645,7 @@
                         </span>
                       </div>
                       <!-- Address -->
-                      <div class=" block md:inline-block pb-1 md:pb-0 text-gray-500 dark:text-neutral-400 text-xs">
+                      <div class="block md:inline-block pb-1 md:pb-0 text-gray-500 dark:text-neutral-400 awg-mono">
                         <span class="group">
                           <!-- Show -->
                           <input v-show="clientEditAddressId === client.id" v-model="clientEditAddress"
@@ -179,7 +654,7 @@
                             :ref="'client-' + client.id + '-address'"
                             class="rounded border-2 dark:bg-neutral-700 border-gray-100 dark:border-neutral-600 focus:border-gray-200 dark:focus:border-neutral-500 outline-none w-20 text-black dark:text-neutral-300 dark:placeholder:text-neutral-500" />
                           <span v-show="clientEditAddressId !== client.id"
-                            class="inline-block ">{{client.address}}</span>
+                            class="inline-block">{{client.address}}</span>
 
                           <!-- Edit -->
                           <span v-show="clientEditAddressId !== client.id"
@@ -203,7 +678,7 @@
                           </svg>
                           {{client.transferTxCurrent | bytes}}/s
                         </span>
-                        
+
                         <!-- Inline Transfer RX -->
                         <span v-if="!uiTrafficStats && client.transferRx" class="whitespace-nowrap" :title="$t('totalUpload') + bytes(client.transferRx)">
                           ·
@@ -224,7 +699,7 @@
 
                     <!-- Info -->
                     <div v-if="uiTrafficStats"
-                      class="flex gap-2 items-center shrink-0 text-gray-400 dark:text-neutral-400 text-xs mt-px justify-end">
+                      class="flex gap-2 items-center shrink-0 text-gray-400 dark:text-neutral-400 awg-mono mt-px justify-end">
 
                       <!-- Transfer TX -->
                       <div class="min-w-20 md:min-w-24" v-if="client.transferTx">
@@ -266,20 +741,19 @@
 
                     </div>
                   </div>
-                  <!-- </div> --> <!-- <div class="flex flex-grow items-center"> -->
                 </div>
 
                 <div class="flex items-center justify-end">
-                  <div class="text-gray-400 dark:text-neutral-400 flex gap-1 items-center justify-between">
+                  <div class="flex gap-1 items-center justify-between">
 
                     <!-- Enable/Disable -->
                     <div @click="disableClient(client)" v-if="client.enabled === true" :title="$t('disableClient')"
-                      class="inline-block align-middle rounded-full w-10 h-6 mr-1 bg-red-800 cursor-pointer hover:bg-red-700 transition-all">
+                      class="awg-toggle-on inline-block align-middle rounded-full w-10 h-6 mr-1 cursor-pointer transition-all">
                       <div class="rounded-full w-4 h-4 m-1 ml-5 bg-white"></div>
                     </div>
 
                     <div @click="enableClient(client)" v-if="client.enabled === false" :title="$t('enableClient')"
-                      class="inline-block align-middle rounded-full w-10 h-6 mr-1 bg-gray-200 dark:bg-neutral-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-neutral-500 transition-all">
+                      class="awg-toggle-off inline-block align-middle rounded-full w-10 h-6 mr-1 cursor-pointer transition-all">
 
                       <div class="rounded-full w-4 h-4 m-1 bg-white"></div>
                     </div>
@@ -288,9 +762,8 @@
                     <a :disabled="!client.downloadableConfig"
                       :href="'./api/wireguard/client/' + client.id + '/configuration'"
                       :download="client.downloadableConfig ? 'configuration' : null"
-                      class="align-middle inline-block bg-gray-100 dark:bg-neutral-600 dark:text-neutral-300 p-2 rounded transition"
+                      class="awg-icon-btn align-middle inline-block text-gray-400 dark:text-neutral-400 transition"
                       :class="{
-                        'hover:bg-red-800 dark:hover:bg-red-800 hover:text-white dark:hover:text-white': client.downloadableConfig,
                         'is-disabled': !client.downloadableConfig
                       }"
                       :title="!client.downloadableConfig ? $t('noPrivKey') : $t('downloadConfig')"
@@ -302,10 +775,20 @@
                       </svg>
                     </a>
 
-                    <!-- Delete -->
+                    <!-- QR Code -->
+                    <button v-if="client.downloadableConfig"
+                      class="awg-icon-btn align-middle text-gray-400 dark:text-neutral-400 transition"
+                      :title="$t('showQR')"
+                      @click="qrcode = './api/wireguard/client/' + client.id + '/qrcode.svg'">
+                      <svg class="w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                    </button>
 
+                    <!-- Delete -->
                     <button
-                      class="align-middle bg-gray-100 dark:bg-neutral-600 dark:text-neutral-300 hover:bg-red-800 dark:hover:bg-red-800 hover:text-white dark:hover:text-white p-2 rounded transition"
+                      class="awg-icon-btn align-middle text-gray-400 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition"
                       :title="$t('deleteClient')" @click="clientDelete = client">
                       <svg class="w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
@@ -323,7 +806,7 @@
               <p class="text-center m-10 text-gray-400 dark:text-neutral-400 text-sm">
                 {{$t("noClients")}}<br /><br />
                 <button @click="clientCreate = true; clientCreateName = '';"
-                  class="bg-red-800 hover:bg-red-700 text-white border-2 border-none py-2 px-4 rounded inline-flex items-center transition">
+                  class="awg-btn awg-btn-primary py-2 px-4 inline-flex items-center">
                   <svg class="w-4 mr-2" inline xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -333,8 +816,8 @@
                 </button>
               </p>
             </div>
-            <div v-if="clients === null" class="text-gray-200 dark:text-red-300 p-5">
-              <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+            <div v-if="clients === null" class="p-5">
+              <svg class="w-5 animate-spin mx-auto awg-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
                 fill="currentColor">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
@@ -347,10 +830,10 @@
 
         <!-- QR Code-->
         <div v-if="qrcode">
-          <div class="bg-black bg-opacity-50 fixed top-0 right-0 left-0 bottom-0 flex items-center justify-center z-20">
-            <div class="bg-white rounded-md shadow-lg relative p-8">
+          <div class="awg-modal-overlay bg-black bg-opacity-50 fixed top-0 right-0 left-0 bottom-0 flex items-center justify-center z-20">
+            <div class="awg-qr-card relative">
               <button @click="qrcode = null"
-                class="absolute right-4 top-4 text-gray-600 dark:text-neutral-500 hover:text-gray-800 dark:hover:text-neutral-700">
+                class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition">
                 <svg class="w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -364,39 +847,18 @@
         <!-- Create Dialog -->
         <div v-if="clientCreate" class="fixed z-10 inset-0 overflow-y-auto">
           <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <!--
-        Background overlay, show/hide based on modal state.
-
-        Entering: "ease-out duration-300"
-          From: "opacity-0"
-          To: "opacity-100"
-        Leaving: "ease-in duration-200"
-          From: "opacity-100"
-          To: "opacity-0"
-      -->
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true">
               <div class="absolute inset-0 bg-gray-500 dark:bg-black opacity-75 dark:opacity-50"></div>
             </div>
 
-            <!-- This element is to trick the browser into centering the modal contents. -->
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <!--
-        Modal panel, show/hide based on modal state.
-
-        Entering: "ease-out duration-300"
-          From: "opacity-0 tranneutral-y-4 sm:tranneutral-y-0 sm:scale-95"
-          To: "opacity-100 tranneutral-y-0 sm:scale-100"
-        Leaving: "ease-in duration-200"
-          From: "opacity-100 tranneutral-y-0 sm:scale-100"
-          To: "opacity-0 tranneutral-y-4 sm:tranneutral-y-0 sm:scale-95"
-      -->
             <div
-              class="inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
+              class="awg-modal inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
               role="dialog" aria-modal="true" aria-labelledby="modal-headline">
               <div class="bg-white dark:bg-neutral-700 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                   <div
-                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-800 sm:mx-0 sm:h-10 sm:w-10">
+                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-800 sm:mx-0 sm:h-10 sm:w-10" style="border-radius: 14px">
                     <svg class="h-6 w-6 text-white" inline xmlns="http://www.w3.org/2000/svg"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -404,7 +866,7 @@
                     </svg>
                   </div>
                   <div class="flex-grow mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-200" id="modal-headline">
+                    <h3 class="text-lg leading-6 font-semibold text-gray-900 dark:text-neutral-200" id="modal-headline">
                       {{$t("newClient")}}
                     </h3>
                     <div class="mt-2">
@@ -417,17 +879,17 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 dark:bg-neutral-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div class="bg-gray-50 dark:bg-neutral-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" style="border-top: 1px solid var(--surface-light-border)">
                 <button v-if="clientCreateName.length" type="button" @click="createClient(); clientCreate = null"
-                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-800 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                  class="awg-btn awg-btn-primary w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("create")}}
                 </button>
                 <button v-else type="button"
-                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 dark:bg-neutral-400 text-base font-medium text-white dark:text-neutral-300 sm:ml-3 sm:w-auto sm:text-sm cursor-not-allowed">
+                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 dark:bg-neutral-400 text-base font-medium text-white dark:text-neutral-300 sm:ml-3 sm:w-auto sm:text-sm cursor-not-allowed" style="border-radius: 10px">
                   {{$t("create")}}
                 </button>
                 <button type="button" @click="clientCreate = null"
-                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px">
                   {{$t("cancel")}}
                 </button>
               </div>
@@ -438,40 +900,18 @@
         <!-- Delete Dialog -->
         <div v-if="clientDelete" class="fixed z-10 inset-0 overflow-y-auto">
           <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <!--
-        Background overlay, show/hide based on modal state.
-
-        Entering: "ease-out duration-300"
-          From: "opacity-0"
-          To: "opacity-100"
-        Leaving: "ease-in duration-200"
-          From: "opacity-100"
-          To: "opacity-0"
-      -->
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true">
               <div class="absolute inset-0 bg-gray-500 dark:bg-black opacity-75 dark:opacity-50"></div>
             </div>
 
-            <!-- This element is to trick the browser into centering the modal contents. -->
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <!--
-        Modal panel, show/hide based on modal state.
-
-        Entering: "ease-out duration-300"
-          From: "opacity-0 tranneutral-y-4 sm:tranneutral-y-0 sm:scale-95"
-          To: "opacity-100 tranneutral-y-0 sm:scale-100"
-        Leaving: "ease-in duration-200"
-          From: "opacity-100 tranneutral-y-0 sm:scale-100"
-          To: "opacity-0 tranneutral-y-4 sm:tranneutral-y-0 sm:scale-95"
-      -->
             <div
-              class="inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
+              class="awg-modal inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
               role="dialog" aria-modal="true" aria-labelledby="modal-headline">
               <div class="bg-white dark:bg-neutral-700 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                   <div
-                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <!-- Heroicon name: outline/exclamation -->
+                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 sm:mx-0 sm:h-10 sm:w-10" style="border-radius: 14px; background: rgba(239, 68, 68, 0.1)">
                     <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -479,7 +919,7 @@
                     </svg>
                   </div>
                   <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-200" id="modal-headline">
+                    <h3 class="text-lg leading-6 font-semibold text-gray-900 dark:text-neutral-200" id="modal-headline">
                       {{$t("deleteClient")}}
                     </h3>
                     <div class="mt-2">
@@ -490,13 +930,13 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 dark:bg-neutral-600 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div class="bg-gray-50 dark:bg-neutral-600 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" style="border-top: 1px solid var(--surface-light-border)">
                 <button type="button" @click="deleteClient(clientDelete); clientDelete = null"
-                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 dark:bg-red-600 text-base font-medium text-white dark:text-white hover:bg-red-700 dark:hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                  class="awg-btn awg-btn-danger w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 dark:bg-red-600 text-base font-medium text-white dark:text-white hover:bg-red-700 dark:hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px; background: var(--danger)">
                   {{$t("deleteClient")}}
                 </button>
                 <button type="button" @click="clientDelete = null"
-                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px">
                   {{$t("cancel")}}
                 </button>
               </div>
@@ -505,16 +945,16 @@
         </div>
       </div>
 
-      <div v-if="authenticated === false">
+      <div v-if="authenticated === false" class="awg-fade-in">
         <h1 class="text-4xl font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
           <img src="./img/logo.svg" width="60" class="inline align-middle dark:bg" />
-          <span class="align-middle">AmneziaWG</span>
+          <span class="align-middle awg-title" style="font-size: inherit">AmneziaWG</span>
         </h1>
 
         <form @submit="login"
-          class="shadow rounded-md bg-white dark:bg-neutral-700 mx-auto w-64 p-5 overflow-hidden mt-10">
+          class="awg-login-card shadow bg-white dark:bg-neutral-700 mx-auto w-64 p-5 overflow-hidden mt-10">
           <!-- Avatar -->
-          <div class="h-20 w-20 mb-10 mt-5 mx-auto rounded-full bg-red-800 dark:bg-red-800 relative overflow-hidden">
+          <div class="h-20 w-20 mb-10 mt-5 mx-auto rounded-full awg-login-avatar relative overflow-hidden">
             <svg class="w-10 h-10 m-5 text-white dark:text-white" xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
@@ -522,10 +962,10 @@
           </div>
 
           <input type="password" name="password" :placeholder="$t('password')" v-model="password"
-            class="px-3 py-2 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 rounded-lg w-full focus:border-red-800 dark:focus:border-red-800 dark:placeholder:text-neutral-400 outline-none" />
+            class="px-3 py-2 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 w-full dark:placeholder:text-neutral-400 outline-none" style="border-radius: 10px" />
 
           <button v-if="authenticating"
-            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed">
+            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px">
             <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               fill="currentColor">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -535,17 +975,17 @@
             </svg>
           </button>
           <input v-if="!authenticating && password" type="submit"
-            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white hover:bg-red-700 dark:hover:bg-red-700 transition cursor-pointer"
+            class="awg-btn awg-btn-primary w-full py-2 text-sm text-white cursor-pointer font-medium"
             :value="$t('signIn')">
           <input v-if="!authenticating && !password" type="submit"
-            class="bg-gray-200 dark:bg-neutral-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed"
+            class="bg-gray-200 dark:bg-neutral-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px"
             :value="$t('signIn')">
         </form>
       </div>
 
-      <div v-if="authenticated === null" class="text-gray-300 dark:text-red-300 pt-24 pb-12">
+      <div v-if="authenticated === null" class="pt-24 pb-12">
 
-        <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+        <svg class="w-5 animate-spin mx-auto awg-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
           fill="currentColor">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor"

@@ -27,10 +27,17 @@ const {
   JMAX,
   S1,
   S2,
+  S3,
+  S4,
   H1,
   H2,
   H3,
   H4,
+  I1,
+  I2,
+  I3,
+  I4,
+  I5,
 } = require('../config');
 
 module.exports = class WireGuard {
@@ -47,6 +54,17 @@ module.exports = class WireGuard {
         try {
           config = await fs.readFile(path.join(WG_PATH, 'wg0.json'), 'utf8');
           config = JSON.parse(config);
+
+          // Migrate AWG 1.x config to 2.0
+          if (typeof config.server.h1 === 'number') {
+            config.server.h1 = { min: config.server.h1, max: config.server.h1 };
+            config.server.h2 = { min: config.server.h2, max: config.server.h2 };
+            config.server.h3 = { min: config.server.h3, max: config.server.h3 };
+            config.server.h4 = { min: config.server.h4, max: config.server.h4 };
+          }
+          if (config.server.s3 === undefined) config.server.s3 = S3;
+          if (config.server.s4 === undefined) config.server.s4 = S4;
+
           debug('Configuration loaded.');
         } catch (err) {
           const privateKey = await Util.exec('wg genkey');
@@ -66,6 +84,8 @@ module.exports = class WireGuard {
               jmax: JMAX,
               s1: S1,
               s2: S2,
+              s3: S3,
+              s4: S4,
               h1: H1,
               h2: H2,
               h3: H3,
@@ -124,11 +144,12 @@ Jmin = ${config.server.jmin}
 Jmax = ${config.server.jmax}
 S1 = ${config.server.s1}
 S2 = ${config.server.s2}
-H1 = ${config.server.h1}
-H2 = ${config.server.h2}
-H3 = ${config.server.h3}
-H4 = ${config.server.h4}
-Jc = ${config.server.jc}
+S3 = ${config.server.s3}
+S4 = ${config.server.s4}
+H1 = ${config.server.h1.min}-${config.server.h1.max}
+H2 = ${config.server.h2.min}-${config.server.h2.max}
+H3 = ${config.server.h3.min}-${config.server.h3.max}
+H4 = ${config.server.h4.min}-${config.server.h4.max}
 `;
 
     for (const [clientId, client] of Object.entries(config.clients)) {
@@ -236,10 +257,17 @@ Jmin = ${config.server.jmin}
 Jmax = ${config.server.jmax}
 S1 = ${config.server.s1}
 S2 = ${config.server.s2}
-H1 = ${config.server.h1}
-H2 = ${config.server.h2}
-H3 = ${config.server.h3}
-H4 = ${config.server.h4}
+S3 = ${config.server.s3}
+S4 = ${config.server.s4}
+H1 = ${config.server.h1.min}-${config.server.h1.max}
+H2 = ${config.server.h2.min}-${config.server.h2.max}
+H3 = ${config.server.h3.min}-${config.server.h3.max}
+H4 = ${config.server.h4.min}-${config.server.h4.max}
+${I1 ? `I1 = ${I1}\n` : ''}\
+${I2 ? `I2 = ${I2}\n` : ''}\
+${I3 ? `I3 = ${I3}\n` : ''}\
+${I4 ? `I4 = ${I4}\n` : ''}\
+${I5 ? `I5 = ${I5}\n` : ''}\
 
 [Peer]
 PublicKey = ${config.server.publicKey}

@@ -1,23 +1,48 @@
-volumes:
-  etc_amneziawg:
-
 services:
   amnezia-wg-easy:
-    env_file:
-      - .env
-    image: ghcr.io/spcfox/amnezia-wg-easy
-    container_name: amnezia-wg-easy
+    image: ghcr.io/creatorofuniverses/amnezia-wg-easy:devel
+    build: .
+    container_name: amnezia-wg2-easy
+    environment:
+      - LANGUAGE=en
+      - WG_HOST= # ⚠️ Required: your server's public IP or hostname
+      - PASSWORD= # Admin password for the Web UI
+      - PORT=51821
+      - WG_PORT=51820
+      # Uncomment and adjust as needed:
+      # - WG_DEFAULT_DNS=1.1.1.1
+      # - WG_DEFAULT_ADDRESS=10.8.0.x
+      # - WG_MTU=
+      # - WG_PERSISTENT_KEEPALIVE=0
+      # - WG_ALLOWED_IPS=0.0.0.0/0, ::/0
+      # - WG_DEVICE=eth0
+      # - UI_TRAFFIC_STATS=false
+      # - UI_CHART_TYPE=0
+      #
+      # AmneziaWG obfuscation (auto-generated if not set):
+      # - JC=
+      # - JMIN=50
+      # - JMAX=1000
+      # - S1=
+      # - S2=
+      # - S3=
+      # - S4=
+      # - H1=              # Range format: min-max (e.g. 100000-500000000)
+      # - H2=
+      # - H3=
+      # - H4=
+      #
+      # CPS signatures (client-only, AWG 2.0):
+      # - I1=
+      # - I2=
     volumes:
-      - ~/.amnezia-wg-easy:/etc/wireguard
+      - ~/.amnezia-wg-easy:/etc/amnezia/amneziawg
     ports:
-      - "${WG_PORT}:51820/udp"
-      - "${PORT}:${PORT}/tcp"
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
     devices:
       - /dev/net/tun:/dev/net/tun

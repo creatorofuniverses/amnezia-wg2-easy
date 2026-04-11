@@ -1,6 +1,8 @@
-# AmnewziaWG Easy
+# AmneziaWG Easy
 
-You have found the easiest way to install & manage AmneziaWG on any Linux host!
+Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion. Built on [`amneziavpn/amneziawg-go`](https://hub.docker.com/r/amneziavpn/amneziawg-go) base image with AWG 2.0 userspace tools.
+
+> **Note:** Most of the AWG 2.0 upgrade code in this fork was written by [Claude Code](https://claude.ai/code) (Anthropic's AI coding agent). Human-reviewed and tested.
 
 <p align="center">
   <img src="./assets/screenshot.png" width="802" />
@@ -18,21 +20,11 @@ You have found the easiest way to install & manage AmneziaWG on any Linux host!
 * Automatic Light / Dark Mode
 * Multilanguage Support
 * UI_TRAFFIC_STATS (default off)
+* **AmneziaWG 2.0**: S3/S4 padding, H1-H4 ranges, I1-I5 CPS signatures
 
 ## Requirements
 
 * A host with Docker installed.
-
-## Versions
-
-We provide more then 1 docker image to get, this will help you decide which one is best for you.
-
-| tag | Branch | Example | Description |
-| - | - | - | - |
-| `latest` | production | `ghcr.io/wg-easy/wg-easy:latest` or `ghcr.io/wg-easy/wg-easy` | stable as possbile get bug fixes quickly when needed, deployed against `production`. |
-| `13` | production | `ghcr.io/wg-easy/wg-easy:13` | same as latest, stick to a version tag. |
-| `nightly` | master | `ghcr.io/wg-easy/wg-easy:nightly` | mostly unstable gets frequent package and code updates, deployed against `master`. |
-| `development` | pull requests | `ghcr.io/wg-easy/wg-easy:development` | used for development, testing code from PRs before landing into `master`. |
 
 ## Installation
 
@@ -48,7 +40,23 @@ exit
 
 And log in again.
 
-### 2. Run AmneziaWG Easy
+### 2. Enable IP forwarding
+
+Run these on the **host** before starting the container:
+
+```bash
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo sysctl -w net.ipv4.conf.all.src_valid_mark=1
+```
+
+To make them persistent across reboots:
+
+```bash
+echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
+echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
+```
+
+### 3. Run AmneziaWG Easy
 
 ```
   docker run -d \
@@ -58,29 +66,39 @@ And log in again.
   -e PASSWORD=<🚨YOUR_ADMIN_PASSWORD> \
   -e PORT=51821 \
   -e WG_PORT=51820 \
-  -v ~/.amnezia-wg-easy:/etc/wireguard \
+  -v ~/.amnezia-wg-easy:/etc/amnezia/amneziawg \
   -p 51820:51820/udp \
   -p 51821:51821/tcp \
   --cap-add=NET_ADMIN \
   --cap-add=SYS_MODULE \
-  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-  --sysctl="net.ipv4.ip_forward=1" \
   --device=/dev/net/tun:/dev/net/tun \
   --restart unless-stopped \
-  ghcr.io/spcfox/amnezia-wg-easy
+  ghcr.io/creatorofuniverses/amnezia-wg-easy
 ```
 
-> 💡 Replace `YOUR_SERVER_IP` with your WAN IP, or a Dynamic DNS hostname.
+> Replace `YOUR_SERVER_IP` with your WAN IP, or a Dynamic DNS hostname.
 >
-> 💡 Replace `YOUR_ADMIN_PASSWORD` with a password to log in on the Web UI.
+> Replace `YOUR_ADMIN_PASSWORD` with a password to log in on the Web UI.
 
 The Web UI will now be available on `http://0.0.0.0:51821`.
 
-> 💡 Your configuration files will be saved in `~/.amnezia-wg-easy`
+> Your configuration files will be saved in `~/.amnezia-wg-easy`
 
-AmneziaWG Easy can be launched with Docker Compose as well - just download
-[`docker-compose.yml`](docker-compose.yml), make necessary adjustments and
-execute `docker compose up --detach`.
+### 4. Or use Docker Compose
+
+Copy [`docker-compose.yml`](docker-compose.yml), set `WG_HOST` and `PASSWORD`, then:
+
+```bash
+docker compose up --detach
+```
+
+For local development, build the image from source:
+
+```bash
+docker compose up --detach --build
+```
+
+All environment variables are documented as comments inside the compose file.
 
 ## Options
 
@@ -95,7 +113,7 @@ These options can be configured by setting environment variables using `-e KEY="
 | `PASSWORD` | - | `foobar123` | When set, requires a password when logging in to the Web UI. |
 | `WG_HOST` | - | `vpn.myserver.com` | The public hostname of your VPN server. |
 | `WG_DEVICE` | `eth0` | `ens6f0` | Ethernet device the AmneziaWG traffic should be forwarded through. |
-| `WG_PORT` | `51820` | `12345` | The public UDP port of your VPN server. AmneziaWG will listen on that (othwise default) inside the Docker container. |
+| `WG_PORT` | `51820` | `12345` | The public UDP port of your VPN server. AmneziaWG will listen on that (otherwise default) inside the Docker container. |
 | `WG_MTU` | `null` | `1420` | The MTU the clients will use. Server uses default WG MTU. |
 | `WG_PERSISTENT_KEEPALIVE` | `0` | `25` | Value in seconds to keep the "connection" open. If this value is 0, then connections won't be kept alive. |
 | `WG_DEFAULT_ADDRESS` | `10.8.0.x` | `10.6.0.x` | Clients IP address range. |
@@ -110,14 +128,27 @@ These options can be configured by setting environment variables using `-e KEY="
 | `JC` | `random` | `5` | Junk packet count — number of packets with random data that are sent before the start of the session. |
 | `JMIN` | `50` | `25` | Junk packet minimum size — minimum packet size for Junk packet. That is, all randomly generated packets will have a size no smaller than Jmin. |
 | `JMAX` | `1000` | `250` | Junk packet maximum size — maximum size for Junk packets. |
-| `S1` | `random` | `75` | Init packet junk size — the size of random data that will be added to the init packet, the size of which is initially fixed. |
-| `S2` | `random` | `75` | Response packet junk size — the size of random data that will be added to the response packet, the size of which is initially fixed. |
-| `H1` | `random` | `1234567891` | Init packet magic header — the header of the first byte of the handshake. Must be < uint_max. |
-| `H2` | `random` | `1234567892` | Response packet magic header — header of the first byte of the handshake response. Must be < uint_max. |
-| `H3` | `random` | `1234567893` | Underload packet magic header — UnderLoad packet header. Must be < uint_max. |
-| `H4` | `random` | `1234567894` | Transport packet magic header — header of the packet of the data packet. Must be < uint_max. |
+| `S1` | `random` | `75` | Init packet junk size — the size of random data that will be added to the init packet (range 15-150). |
+| `S2` | `random` | `75` | Response packet junk size — the size of random data that will be added to the response packet (range 15-150). |
+| `S3` | `random` | `32` | Cookie reply padding size (range 0-64). AWG 2.0 parameter. |
+| `S4` | `random` | `8` | Data packet padding size (range 0-32, keep low — adds per-packet overhead). AWG 2.0 parameter. |
+| `H1` | `random` | `100000-500000000` | Init packet magic header. Supports range format `min-max` (AWG 2.0) or single value for backward compat. |
+| `H2` | `random` | `600000000-900000000` | Response packet magic header. Same format as H1. Ranges must not overlap between H1-H4. |
+| `H3` | `random` | `1000000000-1200000000` | Underload packet magic header. Same format as H1. |
+| `H4` | `random` | `1300000000-1400000000` | Transport packet magic header. Same format as H1. |
+| `I1` | - | `<r 2><b 0x8580...>` | CPS signature line 1 (client-only, AWG 2.0). Uses CPS syntax: `<b 0xHEX>`, `<r N>`, `<t>`, etc. |
+| `I2` | - | `<b 0xc000000001><r 64><t>` | CPS signature line 2 (client-only). Only include lines that have values. |
+| `I3` | - | - | CPS signature line 3 (client-only). |
+| `I4` | - | - | CPS signature line 4 (client-only). |
+| `I5` | - | - | CPS signature line 5 (client-only). |
 
 > If you change `WG_PORT`, make sure to also change the exposed port.
+
+## QR Codes & Client Configs
+
+The QR codes and downloadable configs use the **classic AmneziaWG** format (compatible with the [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-tools) client apps). They are **not** in the AmneziaVPN format — importing them into the AmneziaVPN app is not supported yet.
+
+<!-- TODO: Add AmneziaVPN config format support (JSON-based, includes protocol selection and server metadata) -->
 
 ## Updating
 
@@ -126,19 +157,20 @@ To update to the latest version, simply run:
 ```bash
 docker stop amnezia-wg-easy
 docker rm amnezia-wg-easy
-docker pull ghcr.io/spcfox/amnezia-wg-easy
+docker pull ghcr.io/creatorofuniverses/amnezia-wg-easy
 ```
 
 And then run the `docker run -d \ ...` command above again.
 
 With Docker Compose AmneziaWG Easy can be updated with a single command:
-`docker compose up --detach --pull always` (if an image tag is specified in the
-Compose file and it is not `latest`, make sure that it is changed to the desired
-one; by default it is omitted and
-[defaults to `latest`](https://docs.docker.com/engine/reference/run/#image-references)). \
-The WireGuared Easy container will be automatically recreated if a newer image
-was pulled.
+`docker compose up --detach --pull always`
+
+### Upgrading from AWG 1.x (spcfox/amnezia-wg-easy)
+
+The config path has changed from `/etc/wireguard` to `/etc/amnezia/amneziawg`. Update your volume mount accordingly. Your existing `wg0.json` config will be automatically migrated — legacy single-value H1-H4 parameters are converted to the new range format on first load.
 
 ## Thanks
 
-Based on [wg-easy](https://github.com/wg-easy/wg-easy) by Emile Nijssen.
+Based on [wg-easy](https://github.com/wg-easy/wg-easy) by Emile Nijssen and [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) by spcfox.
+
+AWG 2.0 support co-authored by [Claude Code](https://claude.ai/code).
