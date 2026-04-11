@@ -77,4 +77,4 @@ Key config (all optional except `WG_HOST` for production):
 
 ## Deployment
 
-Docker image: `ghcr.io/spcfox/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amnezia-wg:latest` provides AWG tools (amneziawg-go userspace + awg/awg-quick symlinked as wg/wg-quick). Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.
+Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amnezia-wg:latest` provides AWG tools (amneziawg-go userspace + awg/awg-quick symlinked as wg/wg-quick). Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.

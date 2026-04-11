@@ -1,6 +1,8 @@
 # AmneziaWG Easy
 
-You have found the easiest way to install & manage AmneziaWG on any Linux host!
+Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion.
+
+> **Note:** Most of the AWG 2.0 upgrade code in this fork was written by [Claude Code](https://claude.ai/code) (Anthropic's AI coding agent). Human-reviewed and tested.
 
 <p align="center">
   <img src="./assets/screenshot.png" width="802" />
@@ -18,21 +20,11 @@ You have found the easiest way to install & manage AmneziaWG on any Linux host!
 * Automatic Light / Dark Mode
 * Multilanguage Support
 * UI_TRAFFIC_STATS (default off)
+* **AmneziaWG 2.0**: S3/S4 padding, H1-H4 ranges, I1-I5 CPS signatures
 
 ## Requirements
 
 * A host with Docker installed.
-
-## Versions
-
-We provide more then 1 docker image to get, this will help you decide which one is best for you.
-
-| tag | Branch | Example | Description |
-| - | - | - | - |
-| `latest` | production | `ghcr.io/wg-easy/wg-easy:latest` or `ghcr.io/wg-easy/wg-easy` | stable as possbile get bug fixes quickly when needed, deployed against `production`. |
-| `13` | production | `ghcr.io/wg-easy/wg-easy:13` | same as latest, stick to a version tag. |
-| `nightly` | master | `ghcr.io/wg-easy/wg-easy:nightly` | mostly unstable gets frequent package and code updates, deployed against `master`. |
-| `development` | pull requests | `ghcr.io/wg-easy/wg-easy:development` | used for development, testing code from PRs before landing into `master`. |
 
 ## Installation
 
@@ -48,7 +40,23 @@ exit
 
 And log in again.
 
-### 2. Run AmneziaWG Easy
+### 2. Enable IP forwarding
+
+Run these on the **host** before starting the container:
+
+```bash
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo sysctl -w net.ipv4.conf.all.src_valid_mark=1
+```
+
+To make them persistent across reboots:
+
+```bash
+echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
+echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
+```
+
+### 3. Run AmneziaWG Easy
 
 ```
   docker run -d \
@@ -63,27 +71,31 @@ And log in again.
   -p 51821:51821/tcp \
   --cap-add=NET_ADMIN \
   --cap-add=SYS_MODULE \
-  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-  --sysctl="net.ipv4.ip_forward=1" \
   --device=/dev/net/tun:/dev/net/tun \
   --restart unless-stopped \
-  ghcr.io/spcfox/amnezia-wg-easy
+  ghcr.io/creatorofuniverses/amnezia-wg-easy
 ```
 
-> 💡 Replace `YOUR_SERVER_IP` with your WAN IP, or a Dynamic DNS hostname.
+> Replace `YOUR_SERVER_IP` with your WAN IP, or a Dynamic DNS hostname.
 >
-> 💡 Replace `YOUR_ADMIN_PASSWORD` with a password to log in on the Web UI.
+> Replace `YOUR_ADMIN_PASSWORD` with a password to log in on the Web UI.
 
 The Web UI will now be available on `http://0.0.0.0:51821`.
 
-> 💡 Your configuration files will be saved in `~/.amnezia-wg-easy`
+> Your configuration files will be saved in `~/.amnezia-wg-easy`
 
-### 3. Or use Docker Compose
+### 4. Or use Docker Compose
 
 Copy [`docker-compose.yml`](docker-compose.yml), set `WG_HOST` and `PASSWORD`, then:
 
 ```bash
 docker compose up --detach
+```
+
+For local development, build the image from source:
+
+```bash
+docker compose up --detach --build
 ```
 
 All environment variables are documented as comments inside the compose file.
@@ -101,7 +113,7 @@ These options can be configured by setting environment variables using `-e KEY="
 | `PASSWORD` | - | `foobar123` | When set, requires a password when logging in to the Web UI. |
 | `WG_HOST` | - | `vpn.myserver.com` | The public hostname of your VPN server. |
 | `WG_DEVICE` | `eth0` | `ens6f0` | Ethernet device the AmneziaWG traffic should be forwarded through. |
-| `WG_PORT` | `51820` | `12345` | The public UDP port of your VPN server. AmneziaWG will listen on that (othwise default) inside the Docker container. |
+| `WG_PORT` | `51820` | `12345` | The public UDP port of your VPN server. AmneziaWG will listen on that (otherwise default) inside the Docker container. |
 | `WG_MTU` | `null` | `1420` | The MTU the clients will use. Server uses default WG MTU. |
 | `WG_PERSISTENT_KEEPALIVE` | `0` | `25` | Value in seconds to keep the "connection" open. If this value is 0, then connections won't be kept alive. |
 | `WG_DEFAULT_ADDRESS` | `10.8.0.x` | `10.6.0.x` | Clients IP address range. |
@@ -139,19 +151,16 @@ To update to the latest version, simply run:
 ```bash
 docker stop amnezia-wg-easy
 docker rm amnezia-wg-easy
-docker pull ghcr.io/spcfox/amnezia-wg-easy
+docker pull ghcr.io/creatorofuniverses/amnezia-wg-easy
 ```
 
 And then run the `docker run -d \ ...` command above again.
 
 With Docker Compose AmneziaWG Easy can be updated with a single command:
-`docker compose up --detach --pull always` (if an image tag is specified in the
-Compose file and it is not `latest`, make sure that it is changed to the desired
-one; by default it is omitted and
-[defaults to `latest`](https://docs.docker.com/engine/reference/run/#image-references)). \
-The WireGuared Easy container will be automatically recreated if a newer image
-was pulled.
+`docker compose up --detach --pull always`
 
 ## Thanks
 
-Based on [wg-easy](https://github.com/wg-easy/wg-easy) by Emile Nijssen.
+Based on [wg-easy](https://github.com/wg-easy/wg-easy) by Emile Nijssen and [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) by spcfox.
+
+AWG 2.0 support co-authored by [Claude Code](https://claude.ai/code).
