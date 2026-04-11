@@ -1,6 +1,6 @@
 # AmneziaWG Easy
 
-Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion.
+Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion. Built on [`amneziavpn/amneziawg-go`](https://hub.docker.com/r/amneziavpn/amneziawg-go) base image with AWG 2.0 userspace tools.
 
 > **Note:** Most of the AWG 2.0 upgrade code in this fork was written by [Claude Code](https://claude.ai/code) (Anthropic's AI coding agent). Human-reviewed and tested.
 
@@ -66,7 +66,7 @@ echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
   -e PASSWORD=<🚨YOUR_ADMIN_PASSWORD> \
   -e PORT=51821 \
   -e WG_PORT=51820 \
-  -v ~/.amnezia-wg-easy:/etc/wireguard \
+  -v ~/.amnezia-wg-easy:/etc/amnezia/amneziawg \
   -p 51820:51820/udp \
   -p 51821:51821/tcp \
   --cap-add=NET_ADMIN \
@@ -158,6 +158,10 @@ And then run the `docker run -d \ ...` command above again.
 
 With Docker Compose AmneziaWG Easy can be updated with a single command:
 `docker compose up --detach --pull always`
+
+### Upgrading from AWG 1.x (spcfox/amnezia-wg-easy)
+
+The config path has changed from `/etc/wireguard` to `/etc/amnezia/amneziawg`. Update your volume mount accordingly. Your existing `wg0.json` config will be automatically migrated — legacy single-value H1-H4 parameters are converted to the new range format on first load.
 
 ## Thanks
 

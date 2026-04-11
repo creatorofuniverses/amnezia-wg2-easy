@@ -45,7 +45,7 @@ There is no test suite. Quality relies on ESLint and manual testing.
 - `js/i18n.js` — Translations (en, ua, ru, tr, no, pl, fr, de, ca, es)
 - `js/vendor/` — Minified third-party libs (Vue, ApexCharts, timeago, sha256)
 
-**Config storage**: WireGuard state lives in `/etc/wireguard/wg0.json` (structured data) synced to `/etc/wireguard/wg0.conf` (WireGuard format).
+**Config storage**: WireGuard state lives in `/etc/amnezia/amneziawg/wg0.json` (structured data) synced to `/etc/amnezia/amneziawg/wg0.conf` (WireGuard format).
 
 ## Key Patterns
 
@@ -77,4 +77,4 @@ Key config (all optional except `WG_HOST` for production):
 
 ## Deployment
 
-Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amnezia-wg:latest` provides AWG tools (amneziawg-go userspace + awg/awg-quick symlinked as wg/wg-quick). Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.
+Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amneziawg-go:latest` provides AWG 2.0 tools (`awg`/`awg-quick` with `wg`/`wg-quick` symlinks). Config path: `/etc/amnezia/amneziawg/`. Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.
