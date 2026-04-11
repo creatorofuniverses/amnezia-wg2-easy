@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AmneziaWG Easy — a web UI for managing an AmneziaWG (obfuscated WireGuard) VPN server on Linux. Fork of wg-easy with added AmneziaWG obfuscation support (JC, JMIN, JMAX, S1, S2, H1-H4 parameters for DPI evasion).
+AmneziaWG Easy — a web UI for managing an AmneziaWG (obfuscated WireGuard) VPN server on Linux. Fork of the archived wg-easy, updated with AmneziaWG 2.0 support (S1-S4 padding, H1-H4 header ranges, I1-I5 CPS signatures for DPI evasion).
 
 ## Build & Development Commands
 
@@ -17,11 +17,12 @@ cd src && npm run lint               # ESLint
 cd src && npm run buildcss           # Compile Tailwind CSS (src/www/src/css/app.css → src/www/css/app.css)
 ```
 
-Docker build from root:
+Docker build & run from root:
 
 ```bash
-npm run build    # docker build --tag amnezia-wg-easy .
-npm run start    # docker run with required caps (NET_ADMIN, SYS_MODULE)
+npm run build                    # docker build --tag amnezia-wg-easy .
+npm run start                    # docker run with required caps (NET_ADMIN, SYS_MODULE)
+docker compose up --detach       # or use docker-compose.yml (set WG_HOST and PASSWORD first)
 ```
 
 There is no test suite. Quality relies on ESLint and manual testing.
@@ -67,10 +68,13 @@ Key config (all optional except `WG_HOST` for production):
 | `PASSWORD` | Admin password | (none) |
 | `WG_DEFAULT_DNS` | Client DNS | 1.1.1.1 |
 | `WG_DEFAULT_ADDRESS` | Client subnet | 10.8.0.x |
-| `JC, JMIN, JMAX, S1, S2, H1-H4` | AmneziaWG obfuscation params | Random |
+| `JC, JMIN, JMAX, S1, S2` | AmneziaWG junk/padding params | Random |
+| `S3, S4` | AWG 2.0 padding (cookie reply, data packet) | Random |
+| `H1-H4` | Header magic ranges (format: `min-max` or single value) | Random |
+| `I1-I5` | CPS signatures (client-only, AWG 2.0) | (none) |
 | `UI_TRAFFIC_STATS` | Enable RX/TX stats | false |
 | `UI_CHART_TYPE` | Chart type (0-3) | 0 |
 
 ## Deployment
 
-Docker image: `ghcr.io/spcfox/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.
+Docker image: `ghcr.io/spcfox/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amnezia-wg:latest` provides AWG tools (amneziawg-go userspace + awg/awg-quick symlinked as wg/wg-quick). Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.

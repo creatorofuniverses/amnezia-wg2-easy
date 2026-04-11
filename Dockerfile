@@ -13,6 +13,7 @@ RUN npm ci --omit=dev &&\
 
 # Copy build result to a new image.
 # This saves a lot of disk space.
+# TODO: update base image tag when amneziavpn/amnezia-wg ships AWG 2.0
 FROM amneziavpn/amnezia-wg:latest
 HEALTHCHECK CMD /usr/bin/timeout 5s /bin/sh -c "/usr/bin/wg show | /bin/grep -q interface || exit 1" --interval=1m --timeout=5s --retries=3
 COPY --from=build_node_modules /app /app

@@ -1,4 +1,4 @@
-# AmnewziaWG Easy
+# AmneziaWG Easy
 
 You have found the easiest way to install & manage AmneziaWG on any Linux host!
 
@@ -78,9 +78,15 @@ The Web UI will now be available on `http://0.0.0.0:51821`.
 
 > 💡 Your configuration files will be saved in `~/.amnezia-wg-easy`
 
-AmneziaWG Easy can be launched with Docker Compose as well - just download
-[`docker-compose.yml`](docker-compose.yml), make necessary adjustments and
-execute `docker compose up --detach`.
+### 3. Or use Docker Compose
+
+Copy [`docker-compose.yml`](docker-compose.yml), set `WG_HOST` and `PASSWORD`, then:
+
+```bash
+docker compose up --detach
+```
+
+All environment variables are documented as comments inside the compose file.
 
 ## Options
 
@@ -110,12 +116,19 @@ These options can be configured by setting environment variables using `-e KEY="
 | `JC` | `random` | `5` | Junk packet count — number of packets with random data that are sent before the start of the session. |
 | `JMIN` | `50` | `25` | Junk packet minimum size — minimum packet size for Junk packet. That is, all randomly generated packets will have a size no smaller than Jmin. |
 | `JMAX` | `1000` | `250` | Junk packet maximum size — maximum size for Junk packets. |
-| `S1` | `random` | `75` | Init packet junk size — the size of random data that will be added to the init packet, the size of which is initially fixed. |
-| `S2` | `random` | `75` | Response packet junk size — the size of random data that will be added to the response packet, the size of which is initially fixed. |
-| `H1` | `random` | `1234567891` | Init packet magic header — the header of the first byte of the handshake. Must be < uint_max. |
-| `H2` | `random` | `1234567892` | Response packet magic header — header of the first byte of the handshake response. Must be < uint_max. |
-| `H3` | `random` | `1234567893` | Underload packet magic header — UnderLoad packet header. Must be < uint_max. |
-| `H4` | `random` | `1234567894` | Transport packet magic header — header of the packet of the data packet. Must be < uint_max. |
+| `S1` | `random` | `75` | Init packet junk size — the size of random data that will be added to the init packet (range 15-150). |
+| `S2` | `random` | `75` | Response packet junk size — the size of random data that will be added to the response packet (range 15-150). |
+| `S3` | `random` | `32` | Cookie reply padding size (range 0-64). AWG 2.0 parameter. |
+| `S4` | `random` | `8` | Data packet padding size (range 0-32, keep low — adds per-packet overhead). AWG 2.0 parameter. |
+| `H1` | `random` | `100000-500000000` | Init packet magic header. Supports range format `min-max` (AWG 2.0) or single value for backward compat. |
+| `H2` | `random` | `600000000-900000000` | Response packet magic header. Same format as H1. Ranges must not overlap between H1-H4. |
+| `H3` | `random` | `1000000000-1200000000` | Underload packet magic header. Same format as H1. |
+| `H4` | `random` | `1300000000-1400000000` | Transport packet magic header. Same format as H1. |
+| `I1` | - | `<r 2><b 0x8580...>` | CPS signature line 1 (client-only, AWG 2.0). Uses CPS syntax: `<b 0xHEX>`, `<r N>`, `<t>`, etc. |
+| `I2` | - | `<b 0xc000000001><r 64><t>` | CPS signature line 2 (client-only). Only include lines that have values. |
+| `I3` | - | - | CPS signature line 3 (client-only). |
+| `I4` | - | - | CPS signature line 4 (client-only). |
+| `I5` | - | - | CPS signature line 5 (client-only). |
 
 > If you change `WG_PORT`, make sure to also change the exposed port.
 
