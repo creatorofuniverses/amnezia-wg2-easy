@@ -946,16 +946,13 @@
       </div>
 
       <div v-if="authenticated === false" class="awg-fade-in">
-        <h1 class="font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
-          <img src="./img/logo.svg" width="52" class="inline align-middle dark:bg" />
-          <div style="margin-top: 12px">
-            <span class="awg-title">AmneziaWG</span>
-            <div class="awg-subtitle" style="text-align: center">secure tunnel</div>
-          </div>
+        <h1 class="text-4xl font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
+          <img src="./img/logo.svg" width="60" class="inline align-middle dark:bg" />
+          <span class="align-middle awg-title" style="font-size: inherit">AmneziaWG</span>
         </h1>
 
         <form @submit="login"
-          class="awg-login-card shadow bg-white dark:bg-neutral-700 mx-auto w-72 p-6 overflow-hidden mt-10">
+          class="awg-login-card shadow bg-white dark:bg-neutral-700 mx-auto w-64 p-5 overflow-hidden mt-10">
           <!-- Avatar -->
           <div class="h-20 w-20 mb-10 mt-5 mx-auto rounded-full awg-login-avatar relative overflow-hidden">
             <svg class="w-10 h-10 m-5 text-white dark:text-white" xmlns="http://www.w3.org/2000/svg"
@@ -965,10 +962,10 @@
           </div>
 
           <input type="password" name="password" :placeholder="$t('password')" v-model="password"
-            class="px-3 py-2.5 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 w-full dark:placeholder:text-neutral-400 outline-none" style="border-radius: 12px" />
+            class="px-3 py-2 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 w-full dark:placeholder:text-neutral-400 outline-none" style="border-radius: 10px" />
 
           <button v-if="authenticating"
-            class="bg-red-800 dark:bg-red-800 w-full py-2.5 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 12px">
+            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px">
             <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               fill="currentColor">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -978,10 +975,10 @@
             </svg>
           </button>
           <input v-if="!authenticating && password" type="submit"
-            class="awg-btn awg-btn-primary w-full py-2.5 text-sm text-white cursor-pointer font-medium"
+            class="awg-btn awg-btn-primary w-full py-2 text-sm text-white cursor-pointer font-medium"
             :value="$t('signIn')">
           <input v-if="!authenticating && !password" type="submit"
-            class="bg-gray-200 dark:bg-neutral-800 w-full py-2.5 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 12px"
+            class="bg-gray-200 dark:bg-neutral-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px"
             :value="$t('signIn')">
         </form>
       </div>

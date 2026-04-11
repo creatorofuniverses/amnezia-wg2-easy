@@ -144,6 +144,12 @@ These options can be configured by setting environment variables using `-e KEY="
 
 > If you change `WG_PORT`, make sure to also change the exposed port.
 
+## QR Codes & Client Configs
+
+The QR codes and downloadable configs use the **classic AmneziaWG** format (compatible with the [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-tools) client apps). They are **not** in the AmneziaVPN format — importing them into the AmneziaVPN app is not supported yet.
+
+<!-- TODO: Add AmneziaVPN config format support (JSON-based, includes protocol selection and server metadata) -->
+
 ## Updating
 
 To update to the latest version, simply run:
