@@ -1,6 +1,6 @@
 services:
   amnezia-wg-easy:
-    image: ghcr.io/creatorofuniverses/amnezia-wg-easy
+    image: ghcr.io/creatorofuniverses/amnezia-wg-easy:devel
     build: .
     container_name: amnezia-wg2-easy
     environment:
