@@ -1,0 +1,48 @@
+services:
+  amnezia-wg2-easy:
+    image: ghcr.io/creatorofuniverses/amnezia-wg-easy:devel
+    build: .
+    container_name: amnezia-wg2-easy
+    environment:
+      - LANGUAGE=${LANGUAGE:-en}
+      - WG_HOST=${WG_HOST}
+      - PASSWORD=${PASSWORD}
+      - PORT=${PORT:-51821}
+      - WG_PORT=${WG_PORT:-51820}
+    volumes:
+      - ~/.amnezia-wg-easy:/etc/amnezia/amneziawg
+    ports:
+      # UDP is NOT published here — the proxy fronts it.
+      - "${PORT:-51821}:${PORT:-51821}/tcp"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+  amnezia-wg-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: amnezia-wg-proxy
+    environment:
+      - WG_PORT=${WG_PORT:-51820}
+      - PROXY_BACKEND_HOST=amnezia-wg2-easy
+      - PROXY_PROTOCOL=${PROXY_PROTOCOL:-quic}
+      - PROXY_QUIC_HANDSHAKE=${PROXY_QUIC_HANDSHAKE:-true}
+      - PROXY_QUIC_DOMAIN=${PROXY_QUIC_DOMAIN:-cloudflare.com}
+      - PROXY_DNS_FORWARD=${PROXY_DNS_FORWARD:-false}
+      - PROXY_DNS_UPSTREAM=${PROXY_DNS_UPSTREAM:-1.1.1.1:53}
+    volumes:
+      # Read-only: proxy reads S1–S4 / H1–H4 from the generated AWG config.
+      - ~/.amnezia-wg-easy:/etc/amnezia/amneziawg:ro
+    ports:
+      - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
+    cap_add:
+      # Lets the proxy bind low ports (443/53) even if run non-root later.
+      - NET_BIND_SERVICE
+    depends_on:
+      amnezia-wg2-easy:
+        condition: service_healthy
+    restart: unless-stopped
