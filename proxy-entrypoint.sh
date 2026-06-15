@@ -18,13 +18,23 @@ set -eu
 case "${PROXY_DNS_FORWARD}" in true|false) ;; *) echo "ERROR: PROXY_DNS_FORWARD must be 'true' or 'false' (got '${PROXY_DNS_FORWARD}')" >&2; exit 1 ;; esac
 case "${PROXY_QUIC_HANDSHAKE}" in true|false) ;; *) echo "ERROR: PROXY_QUIC_HANDSHAKE must be 'true' or 'false' (got '${PROXY_QUIC_HANDSHAKE}')" >&2; exit 1 ;; esac
 
+# The proxy parses `backend` as a literal IP:port (SocketAddr), not a
+# hostname. Resolve the backend host (a Docker service name in sidecar
+# mode, or an IP) to an IPv4 address at startup. If the backend container
+# is later recreated with a new IP, restart this proxy to re-resolve.
+BACKEND_IP=$(getent ahostsv4 "${PROXY_BACKEND_HOST}" 2>/dev/null | head -n1 | cut -d' ' -f1)
+if [ -z "${BACKEND_IP}" ]; then
+  echo "ERROR: cannot resolve backend host '${PROXY_BACKEND_HOST}'" >&2
+  exit 1
+fi
+
 CONFIG_DIR=/etc/amneziawg-proxy
 CONFIG_FILE="${CONFIG_DIR}/proxy.toml"
 mkdir -p "${CONFIG_DIR}" /var/lib/amneziawg-proxy
 
 cat > "${CONFIG_FILE}" <<EOF
 listen = "0.0.0.0:${WG_PORT}"
-backend = "${PROXY_BACKEND_HOST}:${WG_PORT}"
+backend = "${BACKEND_IP}:${WG_PORT}"
 imitate_protocol = "${PROXY_PROTOCOL}"
 awg_config = "${AWG_CONFIG}"
 dns_forward_enabled = ${PROXY_DNS_FORWARD}
