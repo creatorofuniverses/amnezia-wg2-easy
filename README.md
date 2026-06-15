@@ -164,8 +164,8 @@ traffic positively resemble a real **QUIC / DNS / STUN / SIP** service to Deep
 Packet Inspection — a second layer on top of AWG's own S1–S4 / H1–H4
 randomization. Clients connect exactly as before (same `WG_HOST:WG_PORT`); the
 proxy is transparent. Standard AmneziaWG clients get server→client obfuscation;
-bidirectional imitation additionally requires WireSock Secure Connect 3.5+ on
-the client.
+bidirectional (client→server) imitation additionally requires the WireSock
+Secure Connect client — see [Bidirectional imitation](#bidirectional-imitation-wiresock).
 
 ### Setup
 
@@ -195,6 +195,27 @@ just up-proxy    # or: just up
 ```
 
 Client data persists across modes (shared `~/.amnezia-wg-easy` volume).
+
+### Bidirectional imitation (WireSock)
+
+The proxy obfuscates the **server→client** direction on its own, with any
+AmneziaWG client. To also camouflage **client→server** traffic, use the
+[WireSock Secure Connect](https://www.wiresock.net/) client and enable its
+**Protocol Masking** feature (available since WireSock **3.4.4**).
+
+A few things worth knowing:
+
+- WireSock Protocol Masking is driven by its own `[Interface]` keys — **`Ip`**
+  (protocol), **`Id`** (domain/SNI), **`Ib`** (browser profile) — set either in
+  the generated config or in the WireSock app. It does **not** use AmneziaWG's
+  `I1–I5` parameters (WireSock dropped those).
+- It currently masks as **QUIC or DNS only** — not STUN/SIP. So bidirectional
+  imitation only pairs up when the proxy runs in `quic` or `dns` mode (set
+  `Ip` to match `PROXY_PROTOCOL`). STUN/SIP modes give server→client
+  obfuscation only.
+- The underlying tunnel still uses the standard AWG params (`Jc`/`Jmin`/`Jmax`,
+  `S1–S4`, `H1–H4`) this panel already generates — no extra server config is
+  needed for bidirectional mode; it's a client-app choice.
 
 ### Credits / vendoring
 
