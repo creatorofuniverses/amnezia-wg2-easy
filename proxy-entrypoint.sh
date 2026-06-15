@@ -13,6 +13,11 @@ set -eu
 : "${PROXY_QUIC_DOMAIN:=cloudflare.com}"
 : "${AWG_CONFIG:=/etc/amnezia/amneziawg/wg0.conf}"
 
+# Validate TOML booleans early — a bad value would otherwise produce a
+# confusing parse error from the proxy at startup.
+case "${PROXY_DNS_FORWARD}" in true|false) ;; *) echo "ERROR: PROXY_DNS_FORWARD must be 'true' or 'false' (got '${PROXY_DNS_FORWARD}')" >&2; exit 1 ;; esac
+case "${PROXY_QUIC_HANDSHAKE}" in true|false) ;; *) echo "ERROR: PROXY_QUIC_HANDSHAKE must be 'true' or 'false' (got '${PROXY_QUIC_HANDSHAKE}')" >&2; exit 1 ;; esac
+
 CONFIG_DIR=/etc/amneziawg-proxy
 CONFIG_FILE="${CONFIG_DIR}/proxy.toml"
 mkdir -p "${CONFIG_DIR}" /var/lib/amneziawg-proxy
