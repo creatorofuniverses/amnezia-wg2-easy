@@ -150,6 +150,59 @@ The QR codes and downloadable configs use the **classic AmneziaWG** format (comp
 
 <!-- TODO: Add AmneziaVPN config format support (JSON-based, includes protocol selection and server metadata) -->
 
+## Optional Obfuscation Proxy
+
+You can run the VPN in two modes:
+
+| Mode | Command | What runs |
+|------|---------|-----------|
+| Plain | `just up` | AmneziaWG 2.0 only (default) |
+| Proxy | `just up-proxy` | AmneziaWG 2.0 + UDP obfuscation proxy sidecar |
+
+In **proxy mode** an async UDP proxy sits in front of AmneziaWG and makes the
+traffic positively resemble a real **QUIC / DNS / STUN / SIP** service to Deep
+Packet Inspection — a second layer on top of AWG's own S1–S4 / H1–H4
+randomization. Clients connect exactly as before (same `WG_HOST:WG_PORT`); the
+proxy is transparent. Standard AmneziaWG clients get server→client obfuscation;
+bidirectional imitation additionally requires WireSock Secure Connect 3.5+ on
+the client.
+
+### Setup
+
+```bash
+cp .env.example .env       # then edit WG_HOST, PASSWORD, etc.
+just up-proxy              # builds the proxy image and starts both containers
+```
+
+The client-facing port is `WG_PORT` (e.g. set `WG_PORT=443` with
+`PROXY_PROTOCOL=quic`, or `WG_PORT=53` with `PROXY_PROTOCOL=dns`).
+
+### Proxy configuration (`.env`)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PROXY_PROTOCOL` | `quic` | Protocol to imitate: `quic` / `dns` / `stun` / `sip` / `auto` |
+| `PROXY_QUIC_HANDSHAKE` | `true` | Complete a real QUIC/TLS handshake to probes (stronger; `false` = stateless Version Negotiation) |
+| `PROXY_QUIC_DOMAIN` | `cloudflare.com` | SNI domain for the QUIC handshake cert |
+| `PROXY_DNS_FORWARD` | `false` | Answer real DNS queries upstream (only with `dns`/`auto`) |
+| `PROXY_DNS_UPSTREAM` | `1.1.1.1:53` | Upstream resolver when forwarding |
+
+### Switching modes
+
+```bash
+just down        # or: just down-proxy
+just up-proxy    # or: just up
+```
+
+Client data persists across modes (shared `~/.amnezia-wg-easy` volume).
+
+### Credits / vendoring
+
+The proxy under [`proxy/`](proxy/) is vendored from
+[wiresock/amneziawg-install](https://github.com/wiresock/amneziawg-install)
+(`amneziawg-proxy`), MIT-licensed, at commit `549bba8`. Thanks to its authors.
+To update it, re-copy the upstream crate over `proxy/` and bump this note.
+
 ## Updating
 
 To update to the latest version, simply run:
