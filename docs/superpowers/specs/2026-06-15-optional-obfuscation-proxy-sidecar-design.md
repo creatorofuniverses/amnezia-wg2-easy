@@ -2,7 +2,30 @@
 
 **Date:** 2026-06-15
 **Branch:** `feat/amneziawg-proxy`
-**Status:** Approved (pending spec review)
+**Status:** Implemented (Tasks 1–7). Manual E2E (Task 8) pending on a real host.
+
+## Implementation deltas (discovered while building)
+
+These refine, but do not change, the design above:
+
+1. **Backend must be an IP, not a hostname.** The proxy parses `backend` as a
+   Rust `SocketAddr`, so the Docker service name `amnezia-wg2-easy` is rejected.
+   `proxy-entrypoint.sh` resolves `PROXY_BACKEND_HOST` to an IPv4 via
+   `getent ahostsv4` at startup and writes the resolved IP into `backend`. (If
+   the AWG container is later recreated with a new IP, restart the proxy.)
+2. **`PROXY_QUIC_HANDSHAKE` default is `true`** (not `false`): the binary itself
+   defaults it true, and `false` = stateless Version Negotiation (weaker).
+3. **Runtime base pinned to `debian:bookworm-slim`** to match the
+   `rust:1.75-slim` build stage's glibc. (A `cargo fetch` cache layer was tried
+   and reverted — it forced a toolchain bump off the 1.75 pin.)
+4. **`.env.example` uses full-line comments only.** Docker Compose does not strip
+   an inline comment after an *empty* value, which would have turned an empty
+   `PASSWORD=` into the literal comment text (a silent admin password).
+5. **`.env` is now untracked** (added to `.gitignore`); the repo's previously
+   tracked `.env` was an upstream placeholder template, replaced by
+   `.env.example`.
+
+## Summary
 
 ## Summary
 
