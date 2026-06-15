@@ -28,6 +28,7 @@ services:
     container_name: amnezia-wg-proxy
     environment:
       - WG_PORT=${WG_PORT:-51820}
+      # Must equal the AWG service name above so Docker DNS resolves it.
       - PROXY_BACKEND_HOST=amnezia-wg2-easy
       - PROXY_PROTOCOL=${PROXY_PROTOCOL:-quic}
       - PROXY_QUIC_HANDSHAKE=${PROXY_QUIC_HANDSHAKE:-true}

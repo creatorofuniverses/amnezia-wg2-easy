@@ -184,7 +184,7 @@ The client-facing port is `WG_PORT` (e.g. set `WG_PORT=443` with
 | `PROXY_PROTOCOL` | `quic` | Protocol to imitate: `quic` / `dns` / `stun` / `sip` / `auto` |
 | `PROXY_QUIC_HANDSHAKE` | `true` | Complete a real QUIC/TLS handshake to probes (stronger; `false` = stateless Version Negotiation) |
 | `PROXY_QUIC_DOMAIN` | `cloudflare.com` | SNI domain for the QUIC handshake cert |
-| `PROXY_DNS_FORWARD` | `false` | Answer real DNS queries upstream (only with `dns`/`auto`) |
+| `PROXY_DNS_FORWARD` | `false` | Answer real DNS queries upstream. **Requires** `PROXY_PROTOCOL=dns` or `auto` — the proxy refuses to start otherwise |
 | `PROXY_DNS_UPSTREAM` | `1.1.1.1:53` | Upstream resolver when forwarding |
 
 ### Switching modes
