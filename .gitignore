@@ -4,3 +4,9 @@
 /src/node_modules
 .DS_Store
 *.swp
+
+# Local environment
+.env
+
+# Vendored Rust crate build artifacts (belt-and-suspenders; proxy/.gitignore also covers this)
+proxy/target/

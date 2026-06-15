@@ -4,11 +4,11 @@ services:
     build: .
     container_name: amnezia-wg2-easy
     environment:
-      - LANGUAGE=en
-      - WG_HOST= # ⚠️ Required: your server's public IP or hostname
-      - PASSWORD= # Admin password for the Web UI
-      - PORT=51821
-      - WG_PORT=51820
+      - LANGUAGE=${LANGUAGE:-en}
+      - WG_HOST=${WG_HOST}
+      - PASSWORD=${PASSWORD}
+      - PORT=${PORT:-51821}
+      - WG_PORT=${WG_PORT:-51820}
       # Uncomment and adjust as needed:
       # - WG_DEFAULT_DNS=1.1.1.1
       # - WG_DEFAULT_ADDRESS=10.8.0.x
