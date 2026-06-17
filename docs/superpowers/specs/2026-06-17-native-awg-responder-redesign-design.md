@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-17
 **Branch:** `feat/amneziawg-proxy`
-**Status:** Design — approved in brainstorm, not yet planned. Run `superpowers:writing-plans` against this doc next.
+**Status:** Design — approved in brainstorm; revised to incorporate the review
+(`2026-06-17-native-awg-responder-redesign-review.md`, findings F1–F6). Run
+`superpowers:writing-plans` against this doc next.
 **Supersedes:** `docs/superpowers/specs/2026-06-15-optional-obfuscation-proxy-sidecar-design.md`
 (the inline Rust sidecar). That design's `transform.rs` rewrite + UDP relay are
 removed here; only its `responder.rs` probe-response role survives, rewritten in Go.
@@ -66,8 +68,9 @@ filter** — off the data fast-path, answering scanners without relaying real tr
    protocol responses — a behavior port, not a bit-for-bit one. Go also has the
    mature `go-nfqueue` library the topology needs.
 4. **Topology = NFQUEUE, first-contact only.** Native AWG owns `WG_PORT`. An
-   iptables rule queues only conntrack-`NEW` inbound UDP to the Go responder;
-   `ESTABLISHED` flows bypass userspace entirely (kernel fast path).
+   iptables rule queues conntrack-`NEW` inbound UDP (plus probe flows the responder
+   explicitly claims via connmark — see Decision 9) to the Go responder; established,
+   unclaimed flows bypass userspace entirely (kernel fast path).
 5. **Single container, one image.** UI (Node) + `awg-quick` + Go responder run in
    one container under the entrypoint. The responder is an env **toggle** (off by
    default). The old plain/proxy dual-compose split + justfile dance collapse into
@@ -78,6 +81,17 @@ filter** — off the data fast-path, answering scanners without relaying real tr
 7. **Delete the Rust crate outright.** Git history preserves it; keeping a dead
    `proxy/` as "reference" is clutter. The behavior reference is the design + the
    git blob.
+8. **SIP responder is deferred; SIP *shaping* stays.** SIP is the only stateful
+   responder (per-client dialog + timed `100/180/200` follow-ups). The #1 responder
+   covers the three stateless protocols (QUIC/DNS/STUN). `IMITATE_PROTOCOL=sip` still
+   shapes traffic natively (kernel `imitate_sip_modifier` / go), it just has no
+   active-probe reply — the same posture as `RESPONDER=false`. SIP responder is a
+   documented future tier. (Review F2.)
+9. **QUIC responder ports the full TLS-1.3 handshake, not VN-only.** Chosen for
+   strong probe resistance: a realistic prober sends a well-formed v1 Initial and
+   expects a `ServerHello`, which VN cannot give. This is the larger-scope choice and
+   its cost — multi-RTT flow ownership under NFQUEUE — is designed for below. (Review
+   F3, and the new flow-ownership consequence.)
 
 ## Architecture
 
@@ -86,19 +100,20 @@ UI `PORT/tcp` (published).
 
 ```
                        WG_PORT/udp (published)
- client / scanner ─►  ┌─ single container netns ───────────────────────┐
-                      │ iptables: -p udp --dport WG_PORT -m conntrack    │
-                      │   --ctstate NEW -j NFQUEUE --queue-num 0         │
-                      │   (ESTABLISHED bypasses → kernel awg0, fast path)│
-                      │        │                                         │
-                      │        ▼  Go responder (go-nfqueue)              │
-                      │   1 classify_awg? → ACCEPT                       │
-                      │   2 probe(IMITATE)? → reply + DROP               │
-                      │   3 else → ACCEPT                                │
-                      │                                                  │
-                      │ awg0  (kernel module via awg-quick │ go fallback)│
-                      │ Node UI :PORT/tcp                                │
-                      └──────────────────────────────────────────────────┘
+ client / scanner ─►  ┌─ single container netns ───────────────────────────┐
+                      │ iptables: udp dpt WG_PORT, NEW or connmark 0x1       │
+                      │   → NFQUEUE 0   (ESTABLISHED+unmarked → awg0 fast path)│
+                      │        │                                             │
+                      │        ▼  Go responder (go-nfqueue, userspace)       │
+                      │   1 classify_awg (hs OR transport)? → ACCEPT         │
+                      │   2 QUIC probe?  → quic-go flight, mark flow, DROP   │
+                      │     DNS/STUN probe? → reply, DROP                    │
+                      │   3 else → ACCEPT                                    │
+                      │        └─ replies injected via raw socket (sport=WG_PORT)
+                      │                                                     │
+                      │ awg0  (kernel module via awg-quick │ go fallback)   │
+                      │ Node UI :PORT/tcp                                   │
+                      └──────────────────────────────────────────────────────┘
 ```
 
 ### Datapath: `awg-quick` auto-select
@@ -114,60 +129,137 @@ The same image and the same `wg0.conf`/`wg0.json` work for both datapaths.
 
 ### The Go responder (`responder/`, new Go module)
 
-A behavior port of the surviving half of `proxy/src/responder.rs`. It keeps the
-rigor of the original:
+A behavior port of the surviving half of `proxy/src/responder.rs` (not byte-exact;
+a probe-responder has no peer that must reproduce its bytes). The #1 responder
+handles the three **stateless** protocols plus the **stateful QUIC handshake**;
+SIP is deferred (Decision 8). It keeps the rigor of the original:
 
-- **QUIC** — Version-Negotiation response. Preserve the RFC 9000 §6.2 rule: the
-  VN response advertises a GREASE value (`0x0a0a0a0a`), **never** `0x00000001`,
-  so it doesn't claim v1 support / become a fingerprint.
+- **QUIC** — two behaviors, both ported:
+  - *Version-Negotiation* (RFC 9000 §17.2.1) for unsupported-version probes,
+    preserving the §6.2 rule: advertise a GREASE value (`0x0a0a0a0a`), **never**
+    `0x00000001`, so it doesn't claim v1 support / become a fingerprint.
+  - *Full TLS-1.3 handshake continuation* (Decision 9) for a well-formed v1
+    Initial: decrypt the Initial (RFC 9001 keys), parse the ClientHello, emit a
+    `ServerHello`/Certificate flight. The Rust uses `quinn-proto` + `rustls` +
+    `rcgen` with a **dynamic SNI resolver** (self-signed cert generated/cached per
+    ClientHello SNI). The Go port uses **`quic-go`** as a server over a custom
+    `net.PacketConn` (reads queued probe packets, writes via the raw-socket egress
+    below) with a `tls.Config.GetCertificate` callback mirroring the SNI resolver.
 - **DNS** — SERVFAIL echoing the transaction ID and question section (RFC 1035
   §4.1.1). Keep the strict end-to-end query validation (QR=0, single question,
   valid uncompressed QNAME, QCLASS ∈ {IN, CH, HS, ANY}) so random AWG junk does
-  not get misclassified as DNS.
+  not get misclassified as DNS. Single-shot, stateless.
 - **STUN** — Binding-Success with `XOR-MAPPED-ADDRESS` for the observed client.
-- **SIP** — the dialog state machine (`Idle→Invited→Ringing→Established→Terminated`)
-  with reflected `Via/From/To/Call-ID/CSeq` headers.
+  Single-shot, stateless.
+- **SIP** — *deferred* (Decision 8). The dialog state machine + timed responses
+  are not ported in #1; `IMITATE_PROTOCOL=sip` shapes traffic but is not
+  actively answered. If `RESPONDER=true` with `IMITATE_PROTOCOL=sip`, the
+  entrypoint logs a warning that SIP probes are not answered (shaping still applies)
+  and the responder runs only its classify/ACCEPT path.
 
-**Ingress integration (`go-nfqueue`):**
+**Ingress integration (`go-nfqueue`).** `go-nfqueue` runs the responder in
+**userspace** — it is *not* a kernel filter, so per-flow state, timers, and an
+embedded QUIC stack are all available to it.
 
-- iptables (rendered by the entrypoint when `RESPONDER=true`):
-  `-A INPUT -p udp --dport ${WG_PORT} -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0`
-- Only **new/unestablished** datagrams reach userspace. The first packet of every
-  real client (its handshake-init) is `NEW` and gets ACCEPTed; conntrack then marks
-  the flow `ESTABLISHED`, so all subsequent packets bypass the queue and stay in
-  the kernel datapath. Bulk VPN throughput never traverses Go.
-- A rate limit on the NFQUEUE rule caps probe/junk flood cost.
+- iptables intent (rendered by the entrypoint when `RESPONDER=true`) — exact rule
+  ordering/syntax is for the plan to finalize and test; the *intent* is:
+  ```
+  # restore any prior probe-claim mark from conntrack onto the packet
+  -A INPUT -p udp --dport ${WG_PORT} -j CONNMARK --restore-mark
+  # probe-claimed flows: keep the WHOLE flow going to the responder (multi-RTT QUIC)
+  -A INPUT -p udp --dport ${WG_PORT} -m mark --mark 0x1        -j NFQUEUE --queue-num 0
+  # otherwise only first-contact packets reach userspace
+  -A INPUT -p udp --dport ${WG_PORT} -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0
+  ```
+  The responder claims a QUIC-probe flow by returning a verdict that sets packet
+  mark `0x1`; a `-j CONNMARK --save-mark` rule persists it onto the conntrack entry
+  so the first rule re-applies it on later packets.
+- **NEW-only by default** so real clients cost one userspace round-trip then run in
+  the kernel: a real handshake-init is `NEW` → ACCEPTed → conntrack marks the flow
+  `ESTABLISHED` → all later packets bypass the queue. **Bulk VPN throughput never
+  traverses Go.**
+- **Probe flows are "claimed" via connmark** so the responder keeps seeing them
+  across RTTs (needed for the QUIC handshake — see below). Real flows are never
+  marked, so they stay on the kernel fast path.
+- A rate limit on the NEW rule caps probe/junk flood cost.
 
 **Per-packet verdict (order is correctness-critical):**
 
 1. `classifyAwgPacket(pkt, S/H)` — does the datagram match a real AWG
-   handshake/transport (exact S-offset + size + H-range header)? → **ACCEPT**.
-2. else `detectProtocol(pkt) == IMITATE_PROTOCOL`? → it is a probe →
-   **send the crafted response, DROP**.
+   handshake **or transport** packet (try all four S/H pairs: exact S-offset +
+   size + H-range; transport is variable-size with a min-size check)? → **ACCEPT**.
+2. else `detectProtocol(pkt) == IMITATE_PROTOCOL`? → it is a probe:
+   - **QUIC** → feed to the embedded `quic-go` endpoint; it emits the server flight
+     via raw egress. **Set connmark `0x1`** so the rest of the multi-RTT handshake
+     stays queued to us. **DROP** the queued packet (we re-emit, not forward).
+   - **DNS / STUN** → build the response, **send via raw egress, DROP**. No mark
+     (single-shot).
 3. else → **ACCEPT** (let the kernel `awg0` silently drop genuine junk).
 
-**Why the responder must read S1–S4 / H1–H4:** client→server shaping can make a
-real handshake-init *resemble the very protocol we answer* (e.g. `IMITATE=dns`
-shapes outgoing padding to look like a DNS query, which `detectProtocol`'s DNS arm
-would match). Running `classifyAwgPacket` **first** guarantees a real handshake is
-ACCEPTed before any probe test, so the responder never drops a legitimate client.
-The responder reads `wg0.conf` once at startup for S/H (params are generated once
-and stable across client add/remove) — the same read the old proxy did.
+**Why the responder must read S1–S4 / H1–H4 (and classify transport, not just
+handshakes):** client→server shaping can make a real handshake-init *resemble the
+very protocol we answer* (e.g. `IMITATE=dns` shapes outgoing padding to look like a
+DNS query, which `detectProtocol`'s DNS arm would match). Running
+`classifyAwgPacket` **first** guarantees a real packet is ACCEPTed before any probe
+test. It must cover **transport** packets too (S4/H4), because after the UDP
+conntrack idle-timeout a mid-stream transport packet re-enters as `NEW` and must be
+recognized as real AWG, not mistaken for a probe (Review F6). The Rust classifier
+tries all four S/H pairs; the Go port must match. The responder reads `wg0.conf`
+once at startup for S/H (params are generated once and stable).
 
 **Responder answers only as `IMITATE_PROTOCOL`** and ignores probes of other
-protocols, the way a real single-protocol server does. Answering every protocol
-on one port would itself be a fingerprint.
+protocols, the way a real single-protocol server does. Answering every protocol on
+one port would itself be a fingerprint.
+
+#### Response egress — raw-socket injection (Review F1)
+
+`awg0` owns `WG_PORT`, so the responder **cannot** bind a UDP socket there to reply,
+and an NFQUEUE verdict (ACCEPT/DROP/mangle) **cannot originate** a new datagram. All
+responder replies are therefore injected with a **raw socket**:
+
+- A `SOCK_RAW` socket with `IP_HDRINCL` (v4) / its v6 equivalent, hand-building the
+  IP + UDP headers and checksums, forging **source port = `WG_PORT`**, dest = the
+  observed client `addr:port`. Both **IPv4 and IPv6** paths are required.
+- Capability: **`CAP_NET_RAW`** (in addition to `CAP_NET_ADMIN` for nfqueue/iptables).
+- **No loop-back:** injected replies are *outbound* with `--sport WG_PORT`; the
+  INPUT queueing rules match `--dport WG_PORT`, so replies never re-enter the queue.
+  (The plan must still confirm no OUTPUT-side rule interferes.)
+
+#### QUIC handshake continuation under NFQUEUE (consequence of Decision 9)
+
+A full QUIC handshake is **multi-RTT**, which collides with "ESTABLISHED bypasses
+userspace": without intervention, the prober's 2nd packet would be `ESTABLISHED`
+and get delivered to `awg0` (which drops it), stalling the handshake. The
+**connmark claim** above resolves this: once step 2 classifies a flow as a QUIC
+probe, that flow's subsequent packets keep being queued to the responder (never to
+`awg0`), so the embedded `quic-go` endpoint can complete the exchange. This is the
+principal added complexity of choosing the full handshake over VN-only, and it is
+intentional: a prober is not a real client, so keeping its flow off the kernel
+fast-path is correct. A per-flow idle TTL evicts abandoned probe state and clears
+the connmark.
+
+#### Crash isolation
+
+The responder is a **side filter**: if it crashes, the tunnel must keep serving.
+The entrypoint runs it as a separate supervised process under `dumb-init`; on
+responder exit the NFQUEUE rules are removed (so traffic falls through to `awg0`
+normally) and the datapath/UI are unaffected. Restart policy is the responder's
+own; a dead responder degrades active-probe defense, never connectivity.
 
 ## Config surface (env)
 
 | Var | Default | Effect |
 |---|---|---|
-| `IMITATE_PROTOCOL` | `none` | `none\|quic\|dns\|stun\|sip`. Drives native sender shaping (server interface **and** every generated client config, via `WireGuard.js`) **and** the responder's answer protocol. |
-| `RESPONDER` | `false` | Enables the NFQUEUE active-probe responder. Requires `IMITATE_PROTOCOL != none` and `CAP_NET_ADMIN`; the entrypoint errors out clearly if `RESPONDER=true` with `IMITATE_PROTOCOL=none`. |
+| `IMITATE_PROTOCOL` | `none` | `none\|quic\|dns\|stun\|sip`. Drives native sender shaping (server interface **and** every generated client config, via `WireGuard.js`) **and** the responder's answer protocol. `sip` shapes but is not actively answered (Decision 8). |
+| `RESPONDER` | `false` | Enables the NFQUEUE active-probe responder. Requires `IMITATE_PROTOCOL != none`, `CAP_NET_ADMIN`, and `CAP_NET_RAW`; the entrypoint errors out clearly if `RESPONDER=true` with `IMITATE_PROTOCOL=none`, and warns (does not fail) if `IMITATE_PROTOCOL=sip`. |
+| `QUIC_HANDSHAKE` | `true` | Only meaningful when `IMITATE_PROTOCOL=quic` + `RESPONDER=true`. `true` = full TLS-1.3 handshake continuation; `false` = Version-Negotiation only (weaker). Mirrors the old `PROXY_QUIC_HANDSHAKE` (which also defaulted true). |
+| `QUIC_CERT_DOMAIN` | `cloudflare.com` | SNI/cert domain for the QUIC handshake's default self-signed cert (the dynamic SNI resolver still mints per-ClientHello certs). Must be non-empty when `QUIC_HANDSHAKE=true`. Mirrors the old `PROXY_QUIC_DOMAIN`. |
 
 Existing `WG_HOST`, `WG_PORT`, `PORT`, `PASSWORD`, `WG_DEFAULT_DNS`,
 `WG_DEFAULT_ADDRESS`, `JC/JMIN/JMAX/S1–S4/H1–H4/I1–I5` are unchanged. The old
-`PROXY_*` vars are **removed**.
+`PROXY_*` vars are **removed** (`PROXY_PROTOCOL`, `PROXY_DNS_FORWARD`,
+`PROXY_DNS_UPSTREAM`, `PROXY_QUIC_HANDSHAKE` → `QUIC_HANDSHAKE`,
+`PROXY_QUIC_DOMAIN` → `QUIC_CERT_DOMAIN`, `PROXY_BACKEND_HOST`).
 
 Tier-4 `qinit` (fake QUIC Initial + SNI) and I-packet special-junk builders are
 **out of scope for #1** — noted as a future enhancement once the basic
@@ -183,8 +275,34 @@ When `IMITATE_PROTOCOL != none`, emit the `imitate_protocol` line:
   is shaped — closing the layer-3 flow-consistency asymmetry).
 
 This is additive; when `IMITATE_PROTOCOL=none`, output is byte-identical to today.
-The exact key name/format must match what `amneziawg-tools-proxy`/`amneziawg-go-proxy`
-parse (verify against their config parser during implementation).
+
+**Config key/format — verified (Review F4):** the `[Interface]` key is
+`ImitateProtocol = <quic|dns|stun|sip>`. It is parsed **first-class** by `awg`
+(`amneziawg-tools-proxy/src/config.c:600`, also accepts the `imitate_protocol`
+setconf arg), carried over netlink as `WGDEVICE_A_IMITATE_PROTOCOL`
+(`ipc-linux.h:228`), and round-trips through `awg showconf`. **Both** datapaths
+consume it: the kernel module handles the attribute end-to-end
+(`netlink.c:62/886–893` → `wg->imitate_proto` → `imitate.c:437–448`) and the go
+fork via UAPI (`device/uapi.go:391`). So `WireGuard.js` emitting `ImitateProtocol`
+is confirmed to reach both backends — no longer an assumption.
+
+## Explicitly dropped from `responder.rs` (Review F5)
+
+For an honest scope, these `responder.rs`/`config.rs` behaviors are intentionally
+**not** carried over:
+
+- **`auto` protocol mode** (`PROXY_PROTOCOL=auto`, per-client protocol-lock on first
+  detection) — dropped. Sender shaping must commit to one shape, and answering many
+  protocols on one port is itself a fingerprint; `IMITATE_PROTOCOL` is single-valued
+  by design.
+- **DNS forward-to-upstream** (`PROXY_DNS_FORWARD` / `PROXY_DNS_UPSTREAM`) — dropped.
+  The responder emits a synthetic SERVFAIL only; it is not a real resolver.
+- **Per-client app-level rate limiting** (token bucket in the proxy) — replaced by the
+  coarser **iptables rate-limit on the NEW rule** (per-rule, not per-client). Adequate
+  for flood protection; the semantic change is noted.
+- **SIP responder** — deferred (Decision 8); shaping retained.
+- **QUIC Version-Negotiation-only as the *sole* behavior** — superseded; #1 ports the
+  full handshake (Decision 9) with VN retained for the unsupported-version case.
 
 ## Migration / file-level changes
 
@@ -196,26 +314,33 @@ parse (verify against their config parser during implementation).
 - dual-mode `justfile` recipes (`up-proxy`/`down-proxy`/`logs-proxy`)
 
 **Add:**
-- `responder/` — Go module (responder + go-nfqueue glue + protocol response builders)
+- `responder/` — Go module: `detectProtocol`/`classifyAwgPacket`, DNS/STUN single-shot
+  builders, the QUIC VN builder, the embedded `quic-go` handshake endpoint + dynamic
+  SNI cert resolver, the raw-socket egress (v4/v6), and the `go-nfqueue` loop with
+  connmark flow-claiming. Dependencies: `go-nfqueue`, `quic-go`.
 - a Go build stage in the single `Dockerfile`
 
 **Replace / modify:**
 - `Dockerfile` — toolchain for `awg-quick` auto-select datapath + Go responder
   build stage; runtime carries `awg`/`awg-quick` (from tools-proxy), `amneziawg-go`
-  (fallback), the responder binary, the Node UI.
-- `docker-compose.yml` — single stack; `IMITATE_PROTOCOL` + `RESPONDER` env;
-  `cap_add: [NET_ADMIN]`; `/dev/net/tun`; document host module + nfqueue/conntrack.
+  (fallback), the responder binary, the Node UI, and `iptables`.
+- `docker-compose.yml` — single stack; `IMITATE_PROTOCOL` + `RESPONDER` +
+  `QUIC_HANDSHAKE` + `QUIC_CERT_DOMAIN` env; `cap_add: [NET_ADMIN, NET_RAW]`;
+  `/dev/net/tun`; document host module + nfqueue/conntrack.
 - entrypoint/startup — `awg-quick` auto-select; when `RESPONDER=true`, render the
-  NFQUEUE iptables rule and launch the responder alongside the UI under `dumb-init`.
-- `src/lib/WireGuard.js` — emit `imitate_protocol` (above).
+  NFQUEUE + connmark iptables rules and launch the responder as a supervised side
+  process alongside the UI under `dumb-init` (crash-isolated: on responder exit,
+  tear down the rules so traffic falls through to `awg0`).
+- `src/lib/WireGuard.js` — emit `ImitateProtocol` (above).
 - `.env.example`, `README`, `justfile` — reflect the single-image model.
 
 ## Host requirements (documented)
 
 - For the kernel datapath: the `amneziawg` module installed/loaded on the **host**
   (DKMS). Otherwise the image silently uses the go userspace fallback.
-- For the responder: `nfnetlink_queue` and `nf_conntrack` kernel modules
-  (standard on mainstream distros). `CAP_NET_ADMIN` on the container.
+- For the responder: `nfnetlink_queue`, `nf_conntrack`, and the `CONNMARK`/`connmark`
+  netfilter targets/matches (standard on mainstream distros). `CAP_NET_ADMIN`
+  (nfqueue + iptables) **and** `CAP_NET_RAW` (reply injection) on the container.
 
 ## Testing (manual — no automated suite per project norms)
 
@@ -226,25 +351,55 @@ parse (verify against their config parser during implementation).
    tunnel from the same `wg0.conf`.
 3. **Shaping:** `IMITATE_PROTOCOL=quic` → `tcpdump`/Wireshark on `WG_PORT` shows
    QUIC-shaped frames in **both** directions, no WireGuard/malformed markers.
-4. **Responder:** `RESPONDER=true` →
-   - a QUIC Initial probe gets a valid Version-Negotiation reply;
+4. **Responder (QUIC):** `IMITATE_PROTOCOL=quic`, `RESPONDER=true` →
+   - an **unsupported-version** QUIC Initial → Version-Negotiation reply (GREASE,
+     not v1);
+   - a **well-formed v1** Initial (e.g. from `quic-go`/`curl --http3` or a probe
+     tool) → the embedded endpoint completes a TLS-1.3 `ServerHello`/cert flight,
+     i.e. the **multi-RTT handshake progresses** (verifies connmark flow-ownership);
    - a DNS / STUN probe is **ignored** (consistent with a QUIC-only server);
    - a **real client still connects** — its handshake is ACCEPTed (classify wins
      before probe-detection), not dropped. Re-test with `IMITATE_PROTOCOL=dns` (the
      adversarial case where shaped handshakes resemble the answered protocol).
-5. **Fast path:** `iperf` over an established tunnel — responder CPU stays ~0 during
-   bulk transfer, confirming `ESTABLISHED` flows bypass userspace.
+5. **Responder (DNS/STUN/SIP):** with `IMITATE_PROTOCOL=dns` a DNS query probe gets a
+   SERVFAIL echoing the question; with `=stun` a Binding-Request gets Binding-Success;
+   with `=sip` confirm shaping occurs but probes are **not** answered (Decision 8) and
+   the entrypoint logged the warning.
+6. **Fast path:** `iperf` over an established tunnel — responder CPU stays ~0 during
+   bulk transfer, confirming `ESTABLISHED` flows bypass userspace. Then confirm a
+   mid-stream transport packet arriving after the conntrack idle-timeout (re-`NEW`)
+   is still ACCEPTed (transport classify, Review F6).
+7. **Crash isolation:** kill the responder mid-session → established tunnels keep
+   flowing, new clients still connect (rules torn down), only active-probe defense
+   is lost.
 
 ## Risks / open items for the plan
 
-- **Verify the `imitate_protocol` config key/format** against the actual parsers in
-  `amneziawg-tools-proxy` and `amneziawg-go-proxy` before wiring `WireGuard.js`.
-- **NFQUEUE rule placement** (INPUT vs PREROUTING) relative to where `awg0` receives
-  — confirm conntrack `NEW`/`ESTABLISHED` transitions as expected for the kernel
-  datapath vs the go-TUN fallback (the fallback's socket may interact with conntrack
-  differently; validate both).
-- **Privileged port binding** when `WG_PORT < 1024` — native AWG binds it; confirm
-  the container (root + `CAP_NET_ADMIN`) can, or add `CAP_NET_BIND_SERVICE`.
-- **Responder ↔ datapath protocol agreement:** the responder answers as
-  `IMITATE_PROTOCOL`; the datapath shapes as the same value. Keep them sourced from
-  one env var so they cannot drift.
+- **`imitate_protocol` plumbing — VERIFIED (was the top risk).** Confirmed
+  end-to-end on both datapaths (see "WireGuard.js change"). Remaining work is a
+  **smoke test**, not a verification unknown: load the kernel module on a host, set
+  `ImitateProtocol=quic`, `awg showconf` round-trip, and `tcpdump` the wire to
+  confirm shaping — and repeat on the go fallback.
+- **QUIC handshake flow-ownership (connmark) is the principal new complexity.** The
+  multi-RTT handshake under NFQUEUE depends on the connmark-claim mechanism keeping a
+  probe flow queued to the responder. The plan must validate: verdict-mark → conntrack
+  persistence → re-queue on later packets, plus a per-flow idle TTL that evicts
+  abandoned probe state and clears the mark. This is the riskiest *new* mechanism;
+  prototype it early.
+- **Raw-egress correctness (v4 + v6):** hand-built IP/UDP headers + checksums, forged
+  source port, and confirmation that injected `--sport WG_PORT` replies are not caught
+  by any OUTPUT-side rule (no loop). Test on both address families.
+- **NFQUEUE placement = INPUT (not PREROUTING):** traffic is locally terminated
+  (`awg0` / go socket), so INPUT is correct. Low risk (Review note). For the go-TUN
+  fallback the NEW/ESTABLISHED bookkeeping is the same (both traverse INPUT before
+  local delivery); the only edge to test is the idle-expiry re-`NEW` transport case
+  (Review F6, covered in Testing).
+- **Privileged port binding** when `WG_PORT < 1024` — native AWG binds it; the current
+  compose already does this. Confirm root + `CAP_NET_ADMIN` suffices, else add
+  `CAP_NET_BIND_SERVICE`. Likely a non-issue.
+- **Responder ↔ datapath protocol agreement:** both sourced from the one
+  `IMITATE_PROTOCOL` env var so they cannot drift.
+- **`quic-go` over a custom `net.PacketConn`:** confirm `quic-go`'s server `Transport`
+  accepts a hand-rolled `PacketConn` (read-from-nfqueue / write-via-raw) and that a
+  self-signed `GetCertificate` resolver satisfies its TLS path; this is the main
+  unknown in the handshake port.
