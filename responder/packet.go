@@ -13,6 +13,14 @@ type udpFlow struct {
 	payload          []byte
 }
 
+// cloneIP copies address bytes out of the packet buffer so the returned net.IP
+// does not alias (and outlive) the NFQUEUE buffer.
+func cloneIP(b []byte) net.IP {
+	ip := make(net.IP, len(b))
+	copy(ip, b)
+	return ip
+}
+
 // parseL3UDP parses an IPv4 or IPv6 packet (as delivered by NFQUEUE) that
 // carries UDP, returning the flow or ok=false if it is not parseable UDP.
 func parseL3UDP(pkt []byte) (udpFlow, bool) {
@@ -30,8 +38,8 @@ func parseL3UDP(pkt []byte) (udpFlow, bool) {
 		}
 		udp := pkt[ihl:]
 		return udpFlow{
-			srcIP:   net.IP(pkt[12:16]),
-			dstIP:   net.IP(pkt[16:20]),
+			srcIP:   cloneIP(pkt[12:16]),
+			dstIP:   cloneIP(pkt[16:20]),
 			srcPort: binary.BigEndian.Uint16(udp[0:2]),
 			dstPort: binary.BigEndian.Uint16(udp[2:4]),
 			payload: udp[8:],
@@ -42,8 +50,8 @@ func parseL3UDP(pkt []byte) (udpFlow, bool) {
 		}
 		udp := pkt[40:]
 		return udpFlow{
-			srcIP:   net.IP(pkt[8:24]),
-			dstIP:   net.IP(pkt[24:40]),
+			srcIP:   cloneIP(pkt[8:24]),
+			dstIP:   cloneIP(pkt[24:40]),
 			srcPort: binary.BigEndian.Uint16(udp[0:2]),
 			dstPort: binary.BigEndian.Uint16(udp[2:4]),
 			payload: udp[8:],
