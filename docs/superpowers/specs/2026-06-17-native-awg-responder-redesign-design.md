@@ -2,9 +2,10 @@
 
 **Date:** 2026-06-17
 **Branch:** `feat/amneziawg-proxy`
-**Status:** Design — approved in brainstorm; revised to incorporate the review
-(`2026-06-17-native-awg-responder-redesign-review.md`, findings F1–F6). Run
-`superpowers:writing-plans` against this doc next.
+**Status:** Design — **ready for `superpowers:writing-plans`** (round-2 review verdict).
+Incorporates both review rounds in `2026-06-17-native-awg-responder-redesign-review.md`
+(round 1: F1–F6; round 2: R2-1…R2-6). The QUIC-handshake flow-claim (R2-1) is gated
+behind a first prototype milestone; the entire non-QUIC scope is plan-ready as-is.
 **Supersedes:** `docs/superpowers/specs/2026-06-15-optional-obfuscation-proxy-sidecar-design.md`
 (the inline Rust sidecar). That design's `transform.rs` rewrite + UDP relay are
 removed here; only its `responder.rs` probe-response role survives, rewritten in Go.
@@ -155,7 +156,11 @@ SIP is deferred (Decision 8). It keeps the rigor of the original:
   are not ported in #1; `IMITATE_PROTOCOL=sip` shapes traffic but is not
   actively answered. If `RESPONDER=true` with `IMITATE_PROTOCOL=sip`, the
   entrypoint logs a warning that SIP probes are not answered (shaping still applies)
-  and the responder runs only its classify/ACCEPT path.
+  and the responder runs only its classify/ACCEPT path. **README framing (Review
+  R2-5):** `IMITATE_PROTOCOL=sip` with `RESPONDER=true` is the *least-protected*
+  combination — a SIP probe gets `awg0`'s silence, the very fingerprint the responder
+  exists to remove. Document SIP as "shaping only, no active-probe defense yet," not
+  as a peer of QUIC/DNS/STUN.
 
 **Ingress integration (`go-nfqueue`).** `go-nfqueue` runs the responder in
 **userspace** — it is *not* a kernel filter, so per-flow state, timers, and an
@@ -164,16 +169,29 @@ embedded QUIC stack are all available to it.
 - iptables intent (rendered by the entrypoint when `RESPONDER=true`) — exact rule
   ordering/syntax is for the plan to finalize and test; the *intent* is:
   ```
-  # restore any prior probe-claim mark from conntrack onto the packet
-  -A INPUT -p udp --dport ${WG_PORT} -j CONNMARK --restore-mark
-  # probe-claimed flows: keep the WHOLE flow going to the responder (multi-RTT QUIC)
-  -A INPUT -p udp --dport ${WG_PORT} -m mark --mark 0x1        -j NFQUEUE --queue-num 0
+  # probe-claimed flows: keep the WHOLE flow going to the responder (multi-RTT QUIC).
+  # Match the CONNMARK directly (masked bit), so no per-packet restore-mark is needed.
+  -A INPUT -p udp --dport ${WG_PORT} -m connmark --mark 0x1/0x1 -j NFQUEUE --queue-num 0
   # otherwise only first-contact packets reach userspace
   -A INPUT -p udp --dport ${WG_PORT} -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0
   ```
-  The responder claims a QUIC-probe flow by returning a verdict that sets packet
-  mark `0x1`; a `-j CONNMARK --save-mark` rule persists it onto the conntrack entry
-  so the first rule re-applies it on later packets.
+- **How the claim mark is persisted (Review R2-1 — the broken-on-paper part):** the
+  responder does **not** persist the mark via an iptables `--save-mark` rule. That
+  cannot work: the QUIC verdict is DROP, and (a) DROP ends chain traversal so a
+  `--save-mark` rule never runs, (b) a DROPped packet's conntrack entry is never
+  *confirmed* (confirmation is post-verdict) so there is no ct entry to mark, and
+  (c) the raw-socket reply leaving via OUTPUT (`sport=WG_PORT`) is what conntrack
+  confirms — in the reverse-as-original direction — which is exactly what flips the
+  prober's next packet to `ESTABLISHED` and routes it to `awg0`, the stall we are
+  trying to prevent. Instead the responder sets the **conntrack mark on the entry
+  directly**, either via the nfqueue verdict's CT facility (`go-nfqueue` `NFQA_CT` /
+  conntrack-mark attribute on the verdict) or via `libnetfilter_conntrack`. This is
+  the **first prototype milestone** (see Risks); the rest of the QUIC-handshake work
+  is gated on it.
+- **Mask the bit (Review R2-2):** use a dedicated masked bit (`0x1/0x1`), disjoint
+  from any fwmark `awg-quick`/`wg0.conf` sets for policy routing (the `Table`/fwmark
+  path), so the claim mark never clobbers or collides with the datapath's fwmark on
+  the bulk path.
 - **NEW-only by default** so real clients cost one userspace round-trip then run in
   the kernel: a real handshake-init is `NEW` → ACCEPTed → conntrack marks the flow
   `ESTABLISHED` → all later packets bypass the queue. **Bulk VPN throughput never
@@ -190,8 +208,10 @@ embedded QUIC stack are all available to it.
    size + H-range; transport is variable-size with a min-size check)? → **ACCEPT**.
 2. else `detectProtocol(pkt) == IMITATE_PROTOCOL`? → it is a probe:
    - **QUIC** → feed to the embedded `quic-go` endpoint; it emits the server flight
-     via raw egress. **Set connmark `0x1`** so the rest of the multi-RTT handshake
-     stays queued to us. **DROP** the queued packet (we re-emit, not forward).
+     via raw egress. **Set the conntrack mark `0x1/0x1` on the entry** (via the
+     verdict's CT facility, *not* an iptables save-mark — see R2-1 below) so the rest
+     of the multi-RTT handshake stays queued to us. **DROP** the queued packet (we
+     re-emit, not forward).
    - **DNS / STUN** → build the response, **send via raw egress, DROP**. No mark
      (single-shot).
 3. else → **ACCEPT** (let the kernel `awg0` silently drop genuine junk).
@@ -217,9 +237,13 @@ one port would itself be a fingerprint.
 and an NFQUEUE verdict (ACCEPT/DROP/mangle) **cannot originate** a new datagram. All
 responder replies are therefore injected with a **raw socket**:
 
-- A `SOCK_RAW` socket with `IP_HDRINCL` (v4) / its v6 equivalent, hand-building the
-  IP + UDP headers and checksums, forging **source port = `WG_PORT`**, dest = the
-  observed client `addr:port`. Both **IPv4 and IPv6** paths are required.
+- A `SOCK_RAW` socket forging **source port = `WG_PORT`**, dest = the observed client
+  `addr:port`. Both **IPv4 and IPv6** paths are required:
+  - **v4:** `IP_HDRINCL` (v4-only), hand-build the IP + UDP headers + checksums.
+  - **v6:** `IP_HDRINCL` does **not** apply; use `IPV6_HDRINCL` (newer kernels) or let
+    the kernel build the IPv6 header. Either way the **IPv6 UDP checksum is mandatory**
+    (it is optional in v4), computed over the v6 pseudo-header — a missing v6 checksum
+    means replies are silently dropped (Review R2-4).
 - Capability: **`CAP_NET_RAW`** (in addition to `CAP_NET_ADMIN` for nfqueue/iptables).
 - **No loop-back:** injected replies are *outbound* with `--sport WG_PORT`; the
   INPUT queueing rules match `--dport WG_PORT`, so replies never re-enter the queue.
@@ -380,12 +404,17 @@ For an honest scope, these `responder.rs`/`config.rs` behaviors are intentionall
   **smoke test**, not a verification unknown: load the kernel module on a host, set
   `ImitateProtocol=quic`, `awg showconf` round-trip, and `tcpdump` the wire to
   confirm shaping — and repeat on the go fallback.
-- **QUIC handshake flow-ownership (connmark) is the principal new complexity.** The
-  multi-RTT handshake under NFQUEUE depends on the connmark-claim mechanism keeping a
-  probe flow queued to the responder. The plan must validate: verdict-mark → conntrack
-  persistence → re-queue on later packets, plus a per-flow idle TTL that evicts
-  abandoned probe state and clears the mark. This is the riskiest *new* mechanism;
-  prototype it early.
+- **QUIC handshake flow-claim — FIRST prototype milestone (Review R2-1).** This is
+  the riskiest new mechanism and it is **broken as first drawn** (iptables
+  `--save-mark`). The prototype's explicit goal is to prove the claim *persists* given
+  the named failure mode: **DROP ⇒ the ct entry is never confirmed ⇒ no mark to
+  restore; and the raw reply confirms the reverse tuple, flipping the prober's 2nd
+  packet to `ESTABLISHED` → `awg0` stall.** The fix to validate: set the conntrack
+  mark on the entry directly via the nfqueue verdict's CT facility (`NFQA_CT`) or
+  `libnetfilter_conntrack` — not a save-mark rule. Fold in R2-2 (masked bit `0x1/0x1`,
+  disjoint from `awg-quick`'s fwmark). Gate the rest of the QUIC-handshake work on
+  this prototype passing. Also: a per-flow idle TTL evicts abandoned probe state and
+  clears the mark.
 - **Raw-egress correctness (v4 + v6):** hand-built IP/UDP headers + checksums, forged
   source port, and confirmation that injected `--sport WG_PORT` replies are not caught
   by any OUTPUT-side rule (no loop). Test on both address families.
@@ -399,7 +428,15 @@ For an honest scope, these `responder.rs`/`config.rs` behaviors are intentionall
   `CAP_NET_BIND_SERVICE`. Likely a non-issue.
 - **Responder ↔ datapath protocol agreement:** both sourced from the one
   `IMITATE_PROTOCOL` env var so they cannot drift.
-- **`quic-go` over a custom `net.PacketConn`:** confirm `quic-go`'s server `Transport`
-  accepts a hand-rolled `PacketConn` (read-from-nfqueue / write-via-raw) and that a
-  self-signed `GetCertificate` resolver satisfies its TLS path; this is the main
-  unknown in the handshake port.
+- **`quic-go` over a custom `net.PacketConn` — lower-risk than first billed (Review
+  R2-3).** `quic.Transport{Conn: pc}` accepts a custom `net.PacketConn`: `ReadFrom`
+  returns `(n, clientAddr)`, `WriteTo` routes to the raw injector, and
+  `tls.Config.GetCertificate` is the standard SNI hook. quic-go logs a one-time
+  warning when the conn isn't `OOBCapablePacketConn` (no ECN/GSO) and degrades
+  cleanly — harmless here. **Pin the quic-go version**; its retransmit/idle timers
+  actually reinforce keeping the flow claimed for the handshake's duration.
+- **Self-signed cert is a residual (weaker) fingerprint (Review R2-6, inherited).**
+  The full handshake defeats a *cheap* prober ("does it speak QUIC/TLS at all"), but a
+  prober that validates the chain sees a self-signed cert for `QUIC_CERT_DOMAIN`.
+  Inherited from the Rust original (`rcgen` self-signed); out of scope to fix —
+  recorded as a known limit so it doesn't surprise later.
