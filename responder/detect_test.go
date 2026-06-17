@@ -64,3 +64,74 @@ func TestDetectDNS(t *testing.T) {
 		t.Fatal("DNS response (QR=1) must not detect as query")
 	}
 }
+
+func TestDNSQnameEnd(t *testing.T) {
+	cases := []struct {
+		name string
+		data []byte
+		want int
+		ok   bool
+	}{
+		{"valid single label", []byte{0x01, 'a', 0x00}, 3, true},
+		{"root only", []byte{0x00}, 1, true},
+		{"compression pointer rejected", []byte{0xC0, 0x0C}, 0, false},
+		{"truncated no root", []byte{0x03, 'a', 'b', 'c'}, 0, false},
+	}
+	for _, c := range cases {
+		got, ok := dnsQnameEnd(c.data, 0)
+		if ok != c.ok || (ok && got != c.want) {
+			t.Errorf("%s: got (%d,%v) want (%d,%v)", c.name, got, ok, c.want, c.ok)
+		}
+	}
+}
+
+func TestDNSQnameEndNameTooLong(t *testing.T) {
+	// Five 63-byte labels (top bits clear, each individually valid) overflow the
+	// 255-octet name limit -> must reject.
+	var b []byte
+	for i := 0; i < 5; i++ {
+		b = append(b, 63)
+		b = append(b, make([]byte, 63)...)
+	}
+	b = append(b, 0x00)
+	if _, ok := dnsQnameEnd(b, 0); ok {
+		t.Fatal("name > 255 octets should be rejected")
+	}
+}
+
+func TestDetectQUICRejects(t *testing.T) {
+	base := []byte{0xC3, 0, 0, 0, 1, 0x04, 1, 2, 3, 4, 0x03, 9, 9, 9}
+	if detectQUIC(base[:6]) {
+		t.Error("len<7 should reject")
+	}
+	badver := append([]byte{}, base...)
+	badver[1], badver[2], badver[3], badver[4] = 0x12, 0x34, 0x56, 0x78
+	if detectQUIC(badver) {
+		t.Error("unrecognized version should reject")
+	}
+	bigDCID := append([]byte{}, base...)
+	bigDCID[5] = 21
+	if detectQUIC(bigDCID) {
+		t.Error("dcid_len>20 should reject")
+	}
+}
+
+func TestDetectDNSRejects(t *testing.T) {
+	valid := []byte{0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0x01, 'a', 0x00, 0x00, 0x01, 0x00, 0x01}
+	q2 := append([]byte{}, valid...)
+	q2[5] = 2
+	if detectDNS(q2) {
+		t.Error("qdcount!=1 should reject")
+	}
+	badClass := append([]byte{}, valid...)
+	badClass[18] = 0x05 // qclass = 5 (not IN/CH/HS/ANY)
+	if detectDNS(badClass) {
+		t.Error("invalid qclass should reject")
+	}
+	stunish := make([]byte, 20)
+	binary.BigEndian.PutUint16(stunish[0:], 0x0001)
+	binary.BigEndian.PutUint32(stunish[4:], 0x2112A442)
+	if detectDNS(stunish) {
+		t.Error("STUN magic cookie must exclude DNS")
+	}
+}
