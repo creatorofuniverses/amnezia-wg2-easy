@@ -38,6 +38,15 @@ module.exports.LANG = process.env.LANGUAGE || 'en';
 module.exports.UI_TRAFFIC_STATS = process.env.UI_TRAFFIC_STATS || 'false';
 module.exports.UI_CHART_TYPE = process.env.UI_CHART_TYPE || 0;
 
+const IMITATE_ALLOWED = ['none', 'quic', 'dns', 'stun', 'sip'];
+const imitateProtocol = (process.env.IMITATE_PROTOCOL || 'none').toLowerCase();
+if (!IMITATE_ALLOWED.includes(imitateProtocol)) {
+  throw new Error(
+    `IMITATE_PROTOCOL must be one of ${IMITATE_ALLOWED.join(', ')} (got: ${process.env.IMITATE_PROTOCOL})`,
+  );
+}
+module.exports.IMITATE_PROTOCOL = imitateProtocol;
+
 const getRandomInt = (min, max) => min + Math.floor(Math.random() * (max - min));
 const getRandomJunkSize = () => getRandomInt(15, 150);
 
