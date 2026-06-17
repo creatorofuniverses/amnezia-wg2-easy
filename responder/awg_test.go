@@ -63,3 +63,17 @@ func TestClassifyRejectsJunk(t *testing.T) {
 		t.Fatal("short junk must not classify")
 	}
 }
+
+func TestClassifyHandshakeResponse(t *testing.T) {
+	d := makeAwg(12, 350, 12+92)
+	if !classifyAwgPacket(d, testParams) {
+		t.Fatal("valid handshake-response not classified")
+	}
+}
+
+func TestClassifyCookieReply(t *testing.T) {
+	d := makeAwg(16, 550, 16+64)
+	if !classifyAwgPacket(d, testParams) {
+		t.Fatal("valid cookie-reply not classified")
+	}
+}
