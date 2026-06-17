@@ -8,5 +8,3 @@
 # Local environment
 .env
 
-# Vendored Rust crate build artifacts (belt-and-suspenders; proxy/.gitignore also covers this)
-proxy/target/

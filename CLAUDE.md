@@ -21,7 +21,7 @@ Docker build & run from root:
 
 ```bash
 npm run build                    # docker build --tag amnezia-wg-easy .
-npm run start                    # docker run with required caps (NET_ADMIN, SYS_MODULE)
+npm run start                    # docker run with required caps (NET_ADMIN)
 docker compose up --detach       # or use docker-compose.yml (set WG_HOST and PASSWORD first)
 ```
 
@@ -77,4 +77,4 @@ Key config (all optional except `WG_HOST` for production):
 
 ## Deployment
 
-Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Base image `amneziavpn/amneziawg-go:latest` provides AWG 2.0 tools (`awg`/`awg-quick` with `wg`/`wg-quick` symlinks). Config path: `/etc/amnezia/amneziawg/`. Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `SYS_MODULE` capabilities plus TUN device access.
+Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Runtime built from the `amneziawg-go-proxy` (userspace fallback) and `amneziawg-tools-proxy` (awg/awg-quick) forks on `alpine:3.20`; uses the host kernel module (DKMS) when present. Config path: `/etc/amnezia/amneziawg/`. Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` capability and `/dev/net/tun` device access (`SYS_MODULE` no longer needed; kernel module is host-installed via DKMS).

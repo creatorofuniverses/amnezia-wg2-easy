@@ -1,6 +1,6 @@
 # AmneziaWG Easy
 
-Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion. Built on [`amneziavpn/amneziawg-go`](https://hub.docker.com/r/amneziavpn/amneziawg-go) base image with AWG 2.0 userspace tools.
+Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy) with **AmneziaWG 2.0** support: S1-S4 padding, H1-H4 header ranges, and I1-I5 CPS (Custom Protocol Signature) packets for DPI evasion. Runs a native AmneziaWG datapath built from source — `amneziawg-go-proxy` (userspace fallback) and `amneziawg-tools-proxy` (awg/awg-quick) forks on an `alpine:3.20` runtime, using the host kernel module (DKMS) when present.
 
 > **Note:** Most of the AWG 2.0 upgrade code in this fork was written by [Claude Code](https://claude.ai/code) (Anthropic's AI coding agent). Human-reviewed and tested.
 
