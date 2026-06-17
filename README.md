@@ -199,6 +199,32 @@ AWG_TOOLS_REF=<commit-sha>
 - Bidirectional imitation currently supports **QUIC and DNS only** — STUN/SIP give server→client obfuscation only.
 - No extra server config is needed; bidirectional mode is a client-app choice.
 
+### Active-probe responder (`RESPONDER`)
+
+A patched datapath silently drops unauthenticated packets — and that silence is
+itself a fingerprint. With `RESPONDER=true`, the container runs a Go side-filter
+on `WG_PORT` that answers active DPI probes with protocol-valid replies, matching
+`IMITATE_PROTOCOL`:
+
+| `IMITATE_PROTOCOL` | Probe answered with |
+|--------------------|---------------------|
+| `dns`  | DNS `SERVFAIL` echoing the query's question |
+| `stun` | STUN Binding-Success with `XOR-MAPPED-ADDRESS` |
+| `quic` | QUIC Version-Negotiation (GREASE; never claims v1) |
+| `sip`  | **Nothing** — SIP is shaping-only for now (least-protected setting) |
+
+Only first-contact packets (conntrack `NEW`) reach the responder; established
+tunnels and bulk throughput stay entirely in the kernel. The responder is
+crash-isolated: if it dies, the tunnel keeps serving and only active-probe
+defense is lost.
+
+**Requirements:** `IMITATE_PROTOCOL != none`, and the `NET_ADMIN` + `NET_RAW`
+capabilities (both set in `docker-compose.yml`). The host needs the
+`nfnetlink_queue` and `nf_conntrack` modules (standard on mainstream distros).
+
+> The current QUIC answer is Version-Negotiation only; the full TLS-1.3 handshake
+> continuation is a later phase.
+
 ## Updating
 
 To update to the latest version, simply run:

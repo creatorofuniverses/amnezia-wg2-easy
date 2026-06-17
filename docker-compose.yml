@@ -15,6 +15,9 @@ services:
       - WG_PORT=${WG_PORT:-51820}
       # Native obfuscation imitation (none|quic|dns|stun|sip):
       - IMITATE_PROTOCOL=${IMITATE_PROTOCOL:-none}
+      # Active-probe responder (answers DNS/STUN/QUIC-VN scanners). Off by
+      # default. Requires IMITATE_PROTOCOL != none and CAP_NET_RAW.
+      - RESPONDER=${RESPONDER:-false}
       # Uncomment and adjust as needed:
       # - WG_DEFAULT_DNS=1.1.1.1
       # - WG_DEFAULT_ADDRESS=10.8.0.x
@@ -49,5 +52,6 @@ services:
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
+      - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
