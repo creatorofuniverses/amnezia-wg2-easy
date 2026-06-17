@@ -76,6 +76,9 @@ func buildIPv4UDP(src, dst net.IP, sport, dport uint16, payload []byte) []byte {
 
 // sendRawUDP injects a forged-source UDP reply to dst. Requires CAP_NET_RAW.
 func sendRawUDP(src, dst net.IP, sport, dport uint16, payload []byte) error {
+	if (src.To4() != nil) != (dst.To4() != nil) {
+		return fmt.Errorf("sendRawUDP: src/dst address family mismatch (src=%v dst=%v)", src, dst)
+	}
 	if dst.To4() != nil {
 		fd, err := unix.Socket(unix.AF_INET, unix.SOCK_RAW, unix.IPPROTO_RAW)
 		if err != nil {
