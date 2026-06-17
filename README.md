@@ -70,7 +70,6 @@ echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
   -p 51820:51820/udp \
   -p 51821:51821/tcp \
   --cap-add=NET_ADMIN \
-  --cap-add=SYS_MODULE \
   --device=/dev/net/tun:/dev/net/tun \
   --restart unless-stopped \
   ghcr.io/creatorofuniverses/amnezia-wg-easy
@@ -150,79 +149,55 @@ The QR codes and downloadable configs use the **classic AmneziaWG** format (comp
 
 <!-- TODO: Add AmneziaVPN config format support (JSON-based, includes protocol selection and server metadata) -->
 
-## Optional Obfuscation Proxy
+## Native Traffic Imitation
 
-You can run the VPN in two modes:
+The image runs native AmneziaWG via `awg-quick`. It uses the **host kernel module** if installed (DKMS), otherwise falls back automatically to the bundled `amneziawg-go` userspace fork — the same single image handles both datapaths.
 
-| Mode | Command | What runs |
-|------|---------|-----------|
-| Plain | `just up` | AmneziaWG 2.0 only (default) |
-| Proxy | `just up-proxy` | AmneziaWG 2.0 + UDP obfuscation proxy sidecar |
+Set `IMITATE_PROTOCOL` to shape the obfuscation padding and junk to resemble a real protocol. The setting applies to **both** the server interface and every generated client config:
 
-In **proxy mode** an async UDP proxy sits in front of AmneziaWG and makes the
-traffic positively resemble a real **QUIC / DNS / STUN / SIP** service to Deep
-Packet Inspection — a second layer on top of AWG's own S1–S4 / H1–H4
-randomization. Clients connect exactly as before (same `WG_HOST:WG_PORT`); the
-proxy is transparent. Standard AmneziaWG clients get server→client obfuscation;
-bidirectional (client→server) imitation additionally requires the WireSock
-Secure Connect client — see [Bidirectional imitation](#bidirectional-imitation-wiresock).
+```bash
+IMITATE_PROTOCOL=none    # default — AWG randomisation only (S1–S4, H1–H4, Jc/Jmin/Jmax)
+IMITATE_PROTOCOL=quic    # pad/shape traffic to resemble QUIC
+IMITATE_PROTOCOL=dns     # pad/shape traffic to resemble DNS
+IMITATE_PROTOCOL=stun    # pad/shape traffic to resemble STUN
+IMITATE_PROTOCOL=sip     # pad/shape traffic to resemble SIP
+```
 
 ### Setup
 
 ```bash
-cp .env.example .env       # then edit WG_HOST, PASSWORD, etc.
-just up-proxy              # builds the proxy image and starts both containers
+cp .env.example .env     # edit WG_HOST, PASSWORD, IMITATE_PROTOCOL, etc.
+just up                  # builds from source and starts the container
 ```
 
-The client-facing port is `WG_PORT` (e.g. set `WG_PORT=443` with
-`PROXY_PROTOCOL=quic`, or `WG_PORT=53` with `PROXY_PROTOCOL=dns`).
+### Host kernel module (recommended datapath)
 
-### Proxy configuration (`.env`)
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `PROXY_PROTOCOL` | `quic` | Protocol to imitate: `quic` / `dns` / `stun` / `sip` / `auto` |
-| `PROXY_QUIC_HANDSHAKE` | `true` | Complete a real QUIC/TLS handshake to probes (stronger; `false` = stateless Version Negotiation) |
-| `PROXY_QUIC_DOMAIN` | `cloudflare.com` | SNI domain for the QUIC handshake cert |
-| `PROXY_DNS_FORWARD` | `false` | Answer real DNS queries upstream. **Requires** `PROXY_PROTOCOL=dns` or `auto` — the proxy refuses to start otherwise |
-| `PROXY_DNS_UPSTREAM` | `1.1.1.1:53` | Upstream resolver when forwarding |
-
-### Switching modes
+Installing the AmneziaWG DKMS module on the host gives the best performance and compatibility:
 
 ```bash
-just down        # or: just down-proxy
-just up-proxy    # or: just up
+# Example for Debian/Ubuntu (adjust for your distro)
+sudo apt install dkms
+# install amneziawg-dkms from your distro's repo or build from source
 ```
 
-Client data persists across modes (shared `~/.amnezia-wg-easy` volume).
+The container requires `CAP_NET_ADMIN` and the `/dev/net/tun` device. **`SYS_MODULE` is no longer needed** — kernel-module loading is handled by the host via DKMS, not inside the container.
+
+### Datapath fork refs
+
+The image builds `amneziawg-go` and `amneziawg-tools` from source. Pin specific commits for reproducible CI builds:
+
+```bash
+AWG_GO_REF=<commit-sha>
+AWG_TOOLS_REF=<commit-sha>
+```
 
 ### Bidirectional imitation (WireSock)
 
-The proxy obfuscates the **server→client** direction on its own, with any
-AmneziaWG client. To also camouflage **client→server** traffic, use the
-[WireSock Secure Connect](https://www.wiresock.net/) client and enable its
-**Protocol Masking** feature (available since WireSock **3.4.4**).
+`IMITATE_PROTOCOL` shapes the **server→client** direction for any AmneziaWG client. To also camouflage **client→server** traffic, use the [WireSock Secure Connect](https://www.wiresock.net/) client and enable its **Protocol Masking** feature (available since WireSock **3.4.4**).
 
-A few things worth knowing:
-
-- WireSock Protocol Masking is driven by its own `[Interface]` keys — **`Ip`**
-  (protocol), **`Id`** (domain/SNI), **`Ib`** (browser profile) — set either in
-  the generated config or in the WireSock app. It does **not** use AmneziaWG's
-  `I1–I5` parameters (WireSock dropped those).
-- It currently masks as **QUIC or DNS only** — not STUN/SIP. So bidirectional
-  imitation only pairs up when the proxy runs in `quic` or `dns` mode (set
-  `Ip` to match `PROXY_PROTOCOL`). STUN/SIP modes give server→client
-  obfuscation only.
-- The underlying tunnel still uses the standard AWG params (`Jc`/`Jmin`/`Jmax`,
-  `S1–S4`, `H1–H4`) this panel already generates — no extra server config is
-  needed for bidirectional mode; it's a client-app choice.
-
-### Credits / vendoring
-
-The proxy under [`proxy/`](proxy/) is vendored from
-[wiresock/amneziawg-install](https://github.com/wiresock/amneziawg-install)
-(`amneziawg-proxy`), MIT-licensed, at commit `549bba8`. Thanks to its authors.
-To update it, re-copy the upstream crate over `proxy/` and bump this note.
+- WireSock Protocol Masking uses its own `[Interface]` keys — **`Ip`** (protocol), **`Id`** (domain/SNI), **`Ib`** (browser profile). It does **not** use AmneziaWG's `I1–I5` parameters.
+- Bidirectional imitation currently supports **QUIC and DNS only** — STUN/SIP give server→client obfuscation only.
+- No extra server config is needed; bidirectional mode is a client-app choice.
 
 ## Updating
 

@@ -1,5 +1,4 @@
-# AmneziaWG Easy — task runner.
-# Plain mode = AWG2 only. Proxy mode = AWG2 + obfuscation proxy sidecar.
+# AmneziaWG Easy — task runner. Single native image; IMITATE_PROTOCOL toggles imitation.
 
 set dotenv-load := true
 
@@ -7,30 +6,18 @@ set dotenv-load := true
 default:
     @just --list
 
-# Plain AWG2 (no proxy).
+# Bring the stack up.
 up:
-    docker compose up -d
+    docker compose up -d --build
 
-# Stop the plain stack.
+# Stop the stack.
 down:
     docker compose down
 
-# AWG2 + obfuscation proxy (builds the proxy image).
-up-proxy:
-    docker compose -f docker-compose.proxy.yml up -d --build
-
-# Stop the proxy stack.
-down-proxy:
-    docker compose -f docker-compose.proxy.yml down
-
-# Follow logs (plain stack).
+# Follow logs.
 logs:
     docker compose logs -f
 
-# Follow logs (proxy stack).
-logs-proxy:
-    docker compose -f docker-compose.proxy.yml logs -f
-
-# Show container status for both stacks.
+# Show container status.
 ps:
     docker compose ps

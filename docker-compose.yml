@@ -1,7 +1,11 @@
 services:
   amnezia-wg-easy:
     image: ghcr.io/creatorofuniverses/amnezia-wg-easy:devel
-    build: .
+    build:
+      context: .
+      args:
+        AWG_GO_REF: ${AWG_GO_REF:-master}
+        AWG_TOOLS_REF: ${AWG_TOOLS_REF:-master}
     container_name: amnezia-wg2-easy
     environment:
       - LANGUAGE=${LANGUAGE:-en}
@@ -9,6 +13,8 @@ services:
       - PASSWORD=${PASSWORD}
       - PORT=${PORT:-51821}
       - WG_PORT=${WG_PORT:-51820}
+      # Native obfuscation imitation (none|quic|dns|stun|sip):
+      - IMITATE_PROTOCOL=${IMITATE_PROTOCOL:-none}
       # Uncomment and adjust as needed:
       # - WG_DEFAULT_DNS=1.1.1.1
       # - WG_DEFAULT_ADDRESS=10.8.0.x
@@ -43,6 +49,5 @@ services:
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
     devices:
       - /dev/net/tun:/dev/net/tun
