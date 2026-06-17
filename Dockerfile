@@ -37,5 +37,5 @@ ENV DEBUG=Server,WireGuard
 # awg-quick uses the host kernel module if present, else this userspace impl:
 ENV WG_QUICK_USERSPACE_IMPLEMENTATION=amneziawg-go
 WORKDIR /app
-HEALTHCHECK CMD /usr/bin/timeout 5s /bin/sh -c "/usr/bin/wg show | /bin/grep -q interface || exit 1" --interval=1m --timeout=5s --retries=3
+HEALTHCHECK --interval=1m --timeout=5s --retries=3 CMD /usr/bin/timeout 5s /bin/sh -c "/usr/bin/wg show | /bin/grep -q interface || exit 1"
 CMD ["/usr/bin/dumb-init", "node", "server.js"]
