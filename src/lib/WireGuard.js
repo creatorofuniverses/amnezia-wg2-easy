@@ -38,6 +38,7 @@ const {
   I3,
   I4,
   I5,
+  IMITATE_PROTOCOL,
 } = require('../config');
 
 module.exports = class WireGuard {
@@ -150,7 +151,7 @@ H1 = ${config.server.h1.min}-${config.server.h1.max}
 H2 = ${config.server.h2.min}-${config.server.h2.max}
 H3 = ${config.server.h3.min}-${config.server.h3.max}
 H4 = ${config.server.h4.min}-${config.server.h4.max}
-`;
+${IMITATE_PROTOCOL !== 'none' ? `ImitateProtocol = ${IMITATE_PROTOCOL}\n` : ''}`;
 
     for (const [clientId, client] of Object.entries(config.clients)) {
       if (!client.enabled) continue;
@@ -263,6 +264,7 @@ H1 = ${config.server.h1.min}-${config.server.h1.max}
 H2 = ${config.server.h2.min}-${config.server.h2.max}
 H3 = ${config.server.h3.min}-${config.server.h3.max}
 H4 = ${config.server.h4.min}-${config.server.h4.max}
+${IMITATE_PROTOCOL !== 'none' ? `ImitateProtocol = ${IMITATE_PROTOCOL}\n` : ''}\
 ${I1 ? `I1 = ${I1}\n` : ''}\
 ${I2 ? `I2 = ${I2}\n` : ''}\
 ${I3 ? `I3 = ${I3}\n` : ''}\
