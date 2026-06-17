@@ -22,8 +22,13 @@ func runQueue(ctx context.Context, queueNum uint16, cfg Config) error {
 	defer nf.Close()
 
 	fn := func(a nfqueue.Attribute) int {
-		// go-nfqueue/v2 always populates PacketID before invoking the hook,
-		// so every packet reaching here can (and must) be verdicted.
+		// go-nfqueue/v2 populates PacketID for every real queued packet. A
+		// message with no PacketID cannot be verdicted (no id for SetVerdict),
+		// so skip it gracefully rather than nil-deref panic in this
+		// single-threaded receive loop (which would kill probe defense).
+		if a.PacketID == nil {
+			return 0
+		}
 		id := *a.PacketID
 		if a.Payload == nil {
 			_ = nf.SetVerdict(id, nfqueue.NfAccept)
