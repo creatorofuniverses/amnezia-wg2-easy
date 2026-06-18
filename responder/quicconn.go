@@ -22,16 +22,18 @@ type packetConn struct {
 	closed   chan struct{}
 	closeOne sync.Once
 
-	mu       sync.Mutex
-	deadline time.Time
+	mu         sync.Mutex
+	deadline   time.Time
+	deadlineCh chan struct{}
 }
 
 func newPacketConn(local net.Addr, inject func(p []byte, addr net.Addr) error) *packetConn {
 	return &packetConn{
-		inbound: make(chan inPkt, 256),
-		inject:  inject,
-		local:   local,
-		closed:  make(chan struct{}),
+		inbound:    make(chan inPkt, 256),
+		inject:     inject,
+		local:      local,
+		closed:     make(chan struct{}),
+		deadlineCh: make(chan struct{}),
 	}
 }
 
@@ -47,23 +49,38 @@ func (c *packetConn) push(data []byte, addr net.Addr) {
 }
 
 func (c *packetConn) ReadFrom(p []byte) (int, net.Addr, error) {
-	c.mu.Lock()
-	dl := c.deadline
-	c.mu.Unlock()
-	var timer <-chan time.Time
-	if !dl.IsZero() {
-		t := time.NewTimer(time.Until(dl))
-		defer t.Stop()
-		timer = t.C
-	}
-	select {
-	case <-c.closed:
-		return 0, nil, net.ErrClosed
-	case <-timer:
-		return 0, nil, os.ErrDeadlineExceeded
-	case pkt := <-c.inbound:
-		n := copy(p, pkt.data)
-		return n, pkt.addr, nil
+	for {
+		c.mu.Lock()
+		dl := c.deadline
+		dch := c.deadlineCh
+		c.mu.Unlock()
+		var timer *time.Timer
+		var tc <-chan time.Time
+		if !dl.IsZero() {
+			timer = time.NewTimer(time.Until(dl))
+			tc = timer.C
+		}
+		select {
+		case <-c.closed:
+			if timer != nil {
+				timer.Stop()
+			}
+			return 0, nil, net.ErrClosed
+		case <-tc:
+			return 0, nil, os.ErrDeadlineExceeded
+		case <-dch:
+			// deadline changed under us; re-evaluate with the new value.
+			if timer != nil {
+				timer.Stop()
+			}
+			continue
+		case pkt := <-c.inbound:
+			if timer != nil {
+				timer.Stop()
+			}
+			n := copy(p, pkt.data)
+			return n, pkt.addr, nil
+		}
 	}
 }
 
@@ -89,6 +106,8 @@ func (c *packetConn) LocalAddr() net.Addr { return c.local }
 func (c *packetConn) SetReadDeadline(t time.Time) error {
 	c.mu.Lock()
 	c.deadline = t
+	close(c.deadlineCh) // wake any blocked ReadFrom to re-evaluate
+	c.deadlineCh = make(chan struct{})
 	c.mu.Unlock()
 	return nil
 }

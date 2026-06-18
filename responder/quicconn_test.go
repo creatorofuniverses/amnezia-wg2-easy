@@ -48,3 +48,64 @@ func TestPacketConnReadDeadline(t *testing.T) {
 		t.Fatal("expected timeout error on idle ReadFrom")
 	}
 }
+
+func TestPacketConnCloseUnblocksAndRejects(t *testing.T) {
+	c := newPacketConn(&net.UDPAddr{}, func([]byte, net.Addr) error { return nil })
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := c.ReadFrom(make([]byte, 16))
+		done <- err
+	}()
+	time.Sleep(20 * time.Millisecond) // let ReadFrom block
+	_ = c.Close()
+	select {
+	case err := <-done:
+		if err != net.ErrClosed {
+			t.Fatalf("ReadFrom after Close = %v, want net.ErrClosed", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ReadFrom did not unblock on Close")
+	}
+	if _, err := c.WriteTo([]byte("x"), &net.UDPAddr{}); err != net.ErrClosed {
+		t.Fatalf("WriteTo after Close = %v, want net.ErrClosed", err)
+	}
+	c.push([]byte("dropped"), &net.UDPAddr{}) // must not panic or block
+	_ = c.Close()                             // double Close must not panic
+}
+
+func TestPacketConnPushDropsWhenFull(t *testing.T) {
+	c := newPacketConn(&net.UDPAddr{}, func([]byte, net.Addr) error { return nil })
+	addr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1}
+	// Overfill well past the buffer; push must never block.
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 1000; i++ {
+			c.push([]byte("p"), addr)
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("push blocked on a full queue (must be non-blocking)")
+	}
+}
+
+func TestPacketConnDeadlineUpdateObserved(t *testing.T) {
+	c := newPacketConn(&net.UDPAddr{}, func([]byte, net.Addr) error { return nil })
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := c.ReadFrom(make([]byte, 16))
+		done <- err
+	}()
+	time.Sleep(20 * time.Millisecond) // ReadFrom blocking with no deadline
+	_ = c.SetReadDeadline(time.Now().Add(20 * time.Millisecond))
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected timeout error after deadline set mid-read")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ReadFrom did not observe the deadline set after it began blocking")
+	}
+}
