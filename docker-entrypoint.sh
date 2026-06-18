@@ -27,14 +27,15 @@ insert_nfqueue_rule() {
   fi
 }
 
-remove_nfqueue_rule() {
-  if [ "${CLAIM_RULE}" = "true" ]; then
-    iptables -D INPUT -p udp --dport "${WG_PORT}" -m connmark --mark 0x1/0x1 \
-      -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null || true
-  fi
-  iptables -D INPUT -p udp --dport "${WG_PORT}" -m conntrack --ctstate NEW \
+flush_nfqueue_rules() {
+  # Loop-delete every copy of both rules (idempotent; cleans leftovers from a
+  # prior crash/kill that skipped graceful teardown). Unconditional so a stale
+  # connmark rule is removed even when CLAIM_RULE is now false.
+  while iptables -D INPUT -p udp --dport "${WG_PORT}" -m connmark --mark 0x1/0x1 \
+    -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null; do :; done
+  while iptables -D INPUT -p udp --dport "${WG_PORT}" -m conntrack --ctstate NEW \
     -m limit --limit 50/sec --limit-burst 100 \
-    -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null || true
+    -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null; do :; done
 }
 
 run_responder() {
@@ -48,14 +49,15 @@ run_responder() {
     sleep 1
   done
 
+  flush_nfqueue_rules
   insert_nfqueue_rule
   echo "responder: NFQUEUE rule installed on udp/${WG_PORT} (queue ${QUEUE_NUM})"
   /usr/bin/awg-responder &
   RESP_PID=$!
-  # On responder exit, remove the rule so traffic falls through to awg0.
+  # On responder exit, flush rules so traffic falls through to awg0.
   wait "${RESP_PID}" || true
-  echo "responder: exited; removing NFQUEUE rule (active-probe defense off, tunnel unaffected)"
-  remove_nfqueue_rule
+  echo "responder: exited; flushing NFQUEUE rules (active-probe defense off, tunnel unaffected)"
+  flush_nfqueue_rules
 }
 
 if [ "${RESPONDER:-false}" = "true" ]; then

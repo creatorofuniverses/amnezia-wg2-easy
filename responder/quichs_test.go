@@ -83,3 +83,47 @@ func TestQUICHandshakeCompletesLoopback(t *testing.T) {
 		t.Fatalf("negotiated ServerName = %q, want example.org", state.ServerName)
 	}
 }
+
+func TestQUICManagerHandshakeThroughInjector(t *testing.T) {
+	serverIP := net.IPv4(10, 0, 0, 1)
+	clientAddr := &net.UDPAddr{IP: net.IPv4(10, 0, 0, 2), Port: 40000}
+
+	var clientConn *packetConn
+	// In-memory wire-sender: deliver the server's egress to the client conn,
+	// exercising the REAL m.inject (type assertion + srcByCli lookup) + m.send.
+	send := func(src, dst net.IP, sport, dport uint16, p []byte) error {
+		clientConn.push(p, &net.UDPAddr{IP: src, Port: int(sport)})
+		return nil
+	}
+	m, err := newQUICManagerSend("cloudflare.com", 443, send)
+	if err != nil {
+		t.Fatalf("newQUICManagerSend: %v", err)
+	}
+	defer m.Close()
+
+	// Client->server packets traverse the REAL handle() (stores srcByCli, pushes).
+	clientConn = newPacketConn(clientAddr, func(p []byte, _ net.Addr) error {
+		m.handle(p, clientAddr, serverIP)
+		return nil
+	})
+	cliTr := &quic.Transport{Conn: clientConn}
+	defer cliTr.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	conn, err := cliTr.Dial(ctx, &net.UDPAddr{IP: serverIP, Port: 443}, &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         "probe.example",
+		NextProtos:         quicALPN,
+	}, &quic.Config{})
+	if err != nil {
+		t.Fatalf("handshake through real manager injector failed: %v", err)
+	}
+	defer conn.CloseWithError(0, "")
+	if !conn.ConnectionState().TLS.HandshakeComplete {
+		t.Fatal("handshake did not complete")
+	}
+	if got := conn.ConnectionState().TLS.ServerName; got != "probe.example" {
+		t.Fatalf("negotiated ServerName = %q, want probe.example", got)
+	}
+}
