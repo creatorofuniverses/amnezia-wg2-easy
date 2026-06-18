@@ -10,3 +10,4 @@
 
 # Go responder build artifact (binary)
 /responder/awg-responder
+/responder/markspike

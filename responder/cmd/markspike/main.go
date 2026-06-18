@@ -49,7 +49,7 @@ func main() {
 		id := *a.PacketID
 		pktCount++
 		log.Printf("pkt #%d id=%d -> verdict=%d set-connmark=0x%x", pktCount, id, verdict, *mark)
-		if err := nf.SetVerdictWithConnMark(id, verdict, int(*mark)); err != nil {
+		if err := nf.SetVerdictWithOption(id, verdict, nfqueue.WithConnMark(uint32(*mark))); err != nil {
 			log.Printf("verdict error: %v", err)
 		}
 		return 0
