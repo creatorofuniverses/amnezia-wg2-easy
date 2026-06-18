@@ -1,5 +1,7 @@
 package main
 
+import "encoding/binary"
+
 // Verdict is the NFQUEUE disposition for a queued packet.
 type Verdict int
 
@@ -12,15 +14,26 @@ const (
 type respKind int
 
 const (
-	respNone  respKind = iota // no reply (ACCEPT)
-	respBytes                 // reply is the returned bytes (DNS/QUIC-VN)
-	respSTUN                  // loop builds the STUN reply using the client addr
+	respNone      respKind = iota // no reply (ACCEPT)
+	respBytes                     // reply is the returned bytes (DNS/QUIC-VN)
+	respSTUN                      // loop builds the STUN reply using the client addr
+	respQUICClaim                 // feed flow to the embedded quic-go endpoint; ACCEPT + connmark
 )
+
+// connMarkClaim is the conntrack mark the responder sets (via the verdict's
+// NFQA_CT facility) to keep a multi-RTT QUIC probe flow queued to userspace.
+// We own the conntrack mark entirely (awg-quick uses the packet fwmark, a
+// different field), so the whole-value set is collision-free; the iptables
+// match still uses the masked form 0x1/0x1 defensively.
+const connMarkClaim = 0x1
 
 // Config is the responder's startup configuration.
 type Config struct {
-	Params   AwgParams
-	Protocol string // none|quic|dns|stun|sip
+	Params        AwgParams
+	Protocol      string // none|quic|dns|stun|sip
+	QUICHandshake bool   // quic only: full TLS-1.3 handshake (true) vs VN-only (false)
+	CertDomain    string // quic only: default SNI/cert domain (QUIC_CERT_DOMAIN)
+	WGPort        uint16 // reply source port for injected handshake packets
 }
 
 // decide runs the correctness-critical order: classify real AWG first, then —
@@ -44,6 +57,12 @@ func decide(payload []byte, cfg Config) (Verdict, respKind, []byte) {
 		}
 	case "quic":
 		if detectQUIC(payload) {
+			// Full handshake only for a well-formed v1 Initial; any other
+			// (still QUIC-shaped) version gets our GREASE Version-Negotiation,
+			// never quic-go's own VN (which would fingerprint its version list).
+			if cfg.QUICHandshake && binary.BigEndian.Uint32(payload[1:5]) == 0x00000001 {
+				return VerdictAccept, respQUICClaim, nil
+			}
 			return VerdictDrop, respBytes, buildQUICVersionNegotiation(payload)
 		}
 	// "sip": shaping only, never answered (Decision 8). "none": unreachable.

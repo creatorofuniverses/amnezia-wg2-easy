@@ -72,3 +72,37 @@ func TestDecideQUICProbeAnswered(t *testing.T) {
 		t.Error("QUIC reply should be a long-header VN packet")
 	}
 }
+
+func quicInitialV1() []byte {
+	// long header + fixed bit, version=1, dcidLen=0, scidLen=0, + a little body.
+	return []byte{0xC0, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xAA, 0xBB}
+}
+
+func quicInitialUnsupported() []byte {
+	// same shape but an unsupported (draft-style) version 0xff000099.
+	return []byte{0xC0, 0xff, 0x00, 0x00, 0x99, 0x00, 0x00, 0xAA, 0xBB}
+}
+
+func TestDecideQUICHandshakeClaimsV1(t *testing.T) {
+	cfg := Config{Protocol: "quic", QUICHandshake: true}
+	v, k, b := decide(quicInitialV1(), cfg)
+	if v != VerdictAccept || k != respQUICClaim || b != nil {
+		t.Fatalf("v1 handshake: got (%v,%v,%v), want (Accept, respQUICClaim, nil)", v, k, b)
+	}
+}
+
+func TestDecideQUICUnsupportedVersionGetsVN(t *testing.T) {
+	cfg := Config{Protocol: "quic", QUICHandshake: true}
+	v, k, b := decide(quicInitialUnsupported(), cfg)
+	if v != VerdictDrop || k != respBytes || len(b) == 0 {
+		t.Fatalf("unsupported version: got (%v,%v,%d bytes), want (Drop, respBytes, VN)", v, k, len(b))
+	}
+}
+
+func TestDecideQUICHandshakeDisabledGetsVN(t *testing.T) {
+	cfg := Config{Protocol: "quic", QUICHandshake: false}
+	v, k, _ := decide(quicInitialV1(), cfg)
+	if v != VerdictDrop || k != respBytes {
+		t.Fatalf("QUIC_HANDSHAKE=false: got (%v,%v), want (Drop, respBytes=VN)", v, k)
+	}
+}

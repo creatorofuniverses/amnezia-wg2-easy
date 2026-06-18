@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 
 	nfqueue "github.com/florianl/go-nfqueue/v2"
 )
@@ -20,6 +21,15 @@ func runQueue(ctx context.Context, queueNum uint16, cfg Config) error {
 		return err
 	}
 	defer nf.Close()
+
+	var qmgr *quicManager
+	if cfg.Protocol == "quic" && cfg.QUICHandshake {
+		qmgr, err = newQUICManager(cfg.CertDomain, cfg.WGPort)
+		if err != nil {
+			return err
+		}
+		defer qmgr.Close()
+	}
 
 	fn := func(a nfqueue.Attribute) int {
 		// go-nfqueue/v2 populates PacketID for every real queued packet. A
@@ -40,6 +50,20 @@ func runQueue(ctx context.Context, queueNum uint16, cfg Config) error {
 			return 0
 		}
 		verdict, kind, resp := decide(flow.payload, cfg)
+		if kind == respQUICClaim {
+			// Feed the probe to the embedded endpoint (it injects the server
+			// flight via raw socket), then ACCEPT *with* the connmark so the
+			// now-confirmed flow's later packets re-enter userspace via the
+			// connmark iptables rule. ACCEPT (not DROP) is required: a DROP
+			// destroys the still-unconfirmed conntrack entry and the mark with
+			// it (Review R2-1 — see the plan's Global Constraints).
+			if qmgr != nil {
+				qmgr.handle(flow.payload, &net.UDPAddr{IP: flow.srcIP, Port: int(flow.srcPort)}, flow.dstIP)
+			}
+			// Non-deprecated option form; SetVerdictWithConnMark is deprecated in v2.0.4.
+			_ = nf.SetVerdictWithOption(id, nfqueue.NfAccept, nfqueue.WithConnMark(connMarkClaim))
+			return 0
+		}
 		if verdict == VerdictDrop {
 			switch kind {
 			case respBytes:
