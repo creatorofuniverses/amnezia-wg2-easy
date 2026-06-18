@@ -12,7 +12,7 @@
 
 - **GATE: the connmark prototype (Task 1) must pass before any of Tasks 2–7 is merged.** Review R2-1 flagged the claim mechanism as "broken as first drawn" (iptables `--save-mark`). Task 1 proves the *correct* mechanism empirically on a real Linux host. Do not build the QUIC handshake on an unproven claim. (Same class of manual, host-required gate as Plan 2's test matrix — there is no automated nfqueue/conntrack equivalent.)
 - **ACCEPT-with-connmark, NOT DROP, for a claimed QUIC flow (correctness, supersedes the design's literal step-2 "DROP").** A `NEW` packet's conntrack entry is *unconfirmed* during the nfqueue verdict; it is only persisted by `nf_conntrack_confirm()` at the end of hook traversal, which runs **only on ACCEPT**. A DROP frees the skb and destroys the unconfirmed entry — the mark set via `NFQA_CT` is lost, exactly the R2-1 failure. So the claimed packet is **ACCEPTed** (carrying mark `0x1`): the entry confirms with the mark, and the packet is delivered to the port-bound wg socket (kernel module or `amneziawg-go`) which silently discards it as non-AWG (no ICMP port-unreachable, because the port *is* bound). The real QUIC server flight is injected separately via the raw socket. DNS/STUN/VN remain single-shot **DROP** (no claim needed).
-- **Claim mechanism = `nf.SetVerdictWithConnMark(id, nfqueue.NfAccept, connMarkClaim)`** (verified present in `go-nfqueue/v2` v2.0.4: nests `CTA_MARK` under `NFQA_CT` in the verdict message). **No cgo, no `libnetfilter_conntrack`, no `conntrack` CLI.** `connMarkClaim = 0x1`. Clearing uses `...WithConnMark(id, NfAccept, 0x0)`.
+- **Claim mechanism = `nf.SetVerdictWithOption(id, nfqueue.NfAccept, nfqueue.WithConnMark(connMarkClaim))`** (in `go-nfqueue/v2` v2.0.4 this nests `CTA_MARK` under `NFQA_CT` in the verdict message). **No cgo, no `libnetfilter_conntrack`, no `conntrack` CLI.** `connMarkClaim = 0x1`. (The convenience wrapper `SetVerdictWithConnMark` is **deprecated** in v2.0.4 — it just calls `SetVerdictWithOption(..., WithConnMark(...))`, so it is wire-identical, but use the non-deprecated `SetVerdictWithOption` form in shipped code.) Clearing the mark uses `nfqueue.WithConnMark(0x0)`.
 - **The conntrack mark is ours alone.** `awg-quick`/`wg0.conf` use the **packet fwmark** (`FwMark`/`Table` → `ip rule fwmark` policy routing) — a *different* field from the conntrack `mark`. Nothing else in this stack writes the conntrack mark, so setting it whole to `0x1` cannot collide with the datapath's routing fwmark (Review R2-2 satisfied by field-disjointness). The iptables match still uses the masked form `--mark 0x1/0x1` defensively (only tests bit 0).
 - **Verdict order is correctness-critical (unchanged from Plan 2):** `classifyAwgPacket` runs **first**, before any protocol detection, because client→server shaping can make a real handshake-init resemble the answered protocol. Must also classify **transport** packets (S4/H4), so a mid-stream packet re-entering as `NEW` after conntrack idle-timeout is recognized as real (Review F6). The QUIC handshake branch lives strictly *after* `classifyAwgPacket`.
 - **Responder answers only as `IMITATE_PROTOCOL`.** The handshake is reachable only when `IMITATE_PROTOCOL=quic`. The full handshake applies only to **v1** (`0x00000001`) Initials; any other (still QUIC-shaped) version gets the Plan-2 GREASE Version-Negotiation, never quic-go's own VN (which would fingerprint quic-go's supported-version list).
@@ -114,7 +114,8 @@ func main() {
 		id := *a.PacketID
 		pktCount++
 		log.Printf("pkt #%d id=%d -> verdict=%d set-connmark=0x%x", pktCount, id, verdict, *mark)
-		if err := nf.SetVerdictWithConnMark(id, verdict, int(*mark)); err != nil {
+		// Non-deprecated option form (SetVerdictWithConnMark is deprecated in v2.0.4).
+		if err := nf.SetVerdictWithOption(id, verdict, nfqueue.WithConnMark(uint32(*mark))); err != nil {
 			log.Printf("verdict error: %v", err)
 		}
 		return 0
@@ -812,7 +813,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `responder/responder_test.go` (extend)
 
 **Interfaces:**
-- Consumes: `quicManager.handle` (Task 4), `nfqueue.SetVerdictWithConnMark` (go-nfqueue v2.0.4).
+- Consumes: `quicManager.handle` (Task 4), `nfqueue.SetVerdictWithOption` + `nfqueue.WithConnMark` (go-nfqueue v2.0.4; the `SetVerdictWithConnMark` wrapper is deprecated — use the option form).
 - Produces: `Config` gains `QUICHandshake bool`, `CertDomain string`, `WGPort uint16`.
 - Produces: new `respKind` value `respQUICClaim`; `decide` returns `(VerdictAccept, respQUICClaim, nil)` for a well-formed **v1** Initial when `QUICHandshake` is true, else the existing VN `(VerdictDrop, respBytes, vn)`.
 - Produces: `const connMarkClaim = 0x1`.
@@ -936,7 +937,8 @@ In the callback `fn`, after `verdict, kind, resp := decide(flow.payload, cfg)` a
 			if qmgr != nil {
 				qmgr.handle(flow.payload, &net.UDPAddr{IP: flow.srcIP, Port: int(flow.srcPort)}, flow.dstIP)
 			}
-			_ = nf.SetVerdictWithConnMark(id, nfqueue.NfAccept, connMarkClaim)
+			// Non-deprecated option form; SetVerdictWithConnMark is deprecated in v2.0.4.
+			_ = nf.SetVerdictWithOption(id, nfqueue.NfAccept, nfqueue.WithConnMark(connMarkClaim))
 			return 0
 		}
 ```
