@@ -10,6 +10,25 @@ import (
 	quic "github.com/quic-go/quic-go"
 )
 
+func TestQUICManagerSrcByCliBounded(t *testing.T) {
+	m, err := newQUICManager("cloudflare.com", 51820)
+	if err != nil {
+		t.Fatalf("newQUICManager: %v", err)
+	}
+	defer m.Close()
+	server := net.IPv4(10, 0, 0, 1)
+	for i := 0; i < maxClaimedFlows+500; i++ {
+		client := &net.UDPAddr{IP: net.IPv4(203, 0, 113, byte(i%256)), Port: 1024 + i}
+		m.handle([]byte{0xc0, 0, 0, 0, 1, 0, 0}, client, server)
+	}
+	m.mu.Lock()
+	n := len(m.srcByCli)
+	m.mu.Unlock()
+	if n > maxClaimedFlows {
+		t.Fatalf("srcByCli grew to %d, want <= %d (unbounded map = DoS vector)", n, maxClaimedFlows)
+	}
+}
+
 func TestQUICHandshakeCompletesLoopback(t *testing.T) {
 	serverAddr := &net.UDPAddr{IP: net.IPv4(10, 0, 0, 1), Port: 51820}
 	clientAddr := &net.UDPAddr{IP: net.IPv4(10, 0, 0, 2), Port: 40000}

@@ -51,8 +51,12 @@ func selfSignedCert(domain string) (*tls.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, err
+	}
 	tmpl := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
+		SerialNumber: serial,
 		Subject:      pkix.Name{CommonName: domain},
 		DNSNames:     []string{domain},
 		NotBefore:    time.Now().Add(-time.Hour),

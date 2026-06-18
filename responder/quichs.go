@@ -17,6 +17,13 @@ import (
 // a cheap "does it speak QUIC/TLS" prober. h3 covers curl --http3 / browsers.
 var quicALPN = []string{"h3", "h3-29", "h3-32", "hq-interop", "doq"}
 
+// maxClaimedFlows bounds srcByCli against a half-open Initial flood (an attacker
+// can vary the source port to mint endless entries). Under normal load the map
+// stays far below this; eviction only engages under flood, where dropping some
+// in-flight prober state is the correct response. ~4096 * (key+net.IP) is well
+// under a megabyte.
+const maxClaimedFlows = 4096
+
 // quicManager runs an embedded quic-go server over a packetConn. The NFQUEUE
 // loop feeds probe packets via handle(); replies are injected by the raw socket
 // with sport=WG_PORT. Probe flows are kept off the kernel fast path by the
@@ -91,8 +98,16 @@ func (m *quicManager) acceptLoop(ctx context.Context) {
 }
 
 func (m *quicManager) handle(payload []byte, client *net.UDPAddr, serverIP net.IP) {
+	key := client.String()
 	m.mu.Lock()
-	m.srcByCli[client.String()] = serverIP
+	if _, ok := m.srcByCli[key]; !ok && len(m.srcByCli) >= maxClaimedFlows {
+		// At capacity with a new client: evict an arbitrary entry to bound memory.
+		for k := range m.srcByCli {
+			delete(m.srcByCli, k)
+			break
+		}
+	}
+	m.srcByCli[key] = serverIP
 	m.mu.Unlock()
 	m.conn.push(payload, client)
 }

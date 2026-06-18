@@ -25,6 +25,24 @@ func TestCertResolverMintsForSNI(t *testing.T) {
 	}
 }
 
+func TestCertResolverDistinctSNIsDistinctSerials(t *testing.T) {
+	r := newCertResolver("cloudflare.com")
+	a, err := r.getCertificate(&tls.ClientHelloInfo{ServerName: "a.example"})
+	if err != nil {
+		t.Fatalf("getCertificate a: %v", err)
+	}
+	b, err := r.getCertificate(&tls.ClientHelloInfo{ServerName: "b.example"})
+	if err != nil {
+		t.Fatalf("getCertificate b: %v", err)
+	}
+	if a == b {
+		t.Fatal("distinct SNIs returned the same cached cert")
+	}
+	if a.Leaf.SerialNumber.Cmp(b.Leaf.SerialNumber) == 0 {
+		t.Fatalf("distinct certs share serial %s — correlatable fingerprint", a.Leaf.SerialNumber)
+	}
+}
+
 func TestCertResolverFallbackAndCaches(t *testing.T) {
 	r := newCertResolver("cloudflare.com")
 	// Empty SNI -> fallback domain.
