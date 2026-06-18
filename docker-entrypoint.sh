@@ -7,16 +7,31 @@ set -e
 WG_PORT="${WG_PORT:-51820}"
 QUEUE_NUM="${RESPONDER_QUEUE:-0}"
 
+# The connmark claim rule is only needed for the multi-RTT QUIC handshake.
+QUIC_HS="${QUIC_HANDSHAKE:-true}"
+CLAIM_RULE=false
+if [ "${IMITATE_PROTOCOL:-none}" = "quic" ] && [ "${QUIC_HS}" != "false" ]; then
+  CLAIM_RULE=true
+fi
+
 insert_nfqueue_rule() {
-  # Insert at the HEAD of INPUT so it precedes the PostUp ACCEPT that the Node
-  # app appends (src/config.js). NEW-only: established flows bypass userspace.
-  # --queue-bypass: if no process is attached to the queue, ACCEPT (fail open).
+  # NEW-only first-contact rule (established flows bypass userspace).
   iptables -I INPUT 1 -p udp --dport "${WG_PORT}" -m conntrack --ctstate NEW \
     -m limit --limit 50/sec --limit-burst 100 \
     -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass
+  if [ "${CLAIM_RULE}" = "true" ]; then
+    # Claimed QUIC probe flows: keep the WHOLE flow queued to the responder
+    # across RTTs. Inserted at position 1 so it precedes the NEW rule.
+    iptables -I INPUT 1 -p udp --dport "${WG_PORT}" -m connmark --mark 0x1/0x1 \
+      -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass
+  fi
 }
 
 remove_nfqueue_rule() {
+  if [ "${CLAIM_RULE}" = "true" ]; then
+    iptables -D INPUT -p udp --dport "${WG_PORT}" -m connmark --mark 0x1/0x1 \
+      -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null || true
+  fi
   iptables -D INPUT -p udp --dport "${WG_PORT}" -m conntrack --ctstate NEW \
     -m limit --limit 50/sec --limit-burst 100 \
     -j NFQUEUE --queue-num "${QUEUE_NUM}" --queue-bypass 2>/dev/null || true

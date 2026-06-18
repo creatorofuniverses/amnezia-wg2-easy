@@ -32,7 +32,7 @@ RUN go build -o /awg-responder .
 
 # ── Runtime ──
 FROM alpine:3.20
-RUN apk add --no-cache nodejs npm bash iproute2 iptables conntrack-tools dumb-init
+RUN apk add --no-cache nodejs npm bash iproute2 iptables dumb-init
 COPY --from=build_awg_go    /src/amneziawg-go      /usr/bin/amneziawg-go
 COPY --from=build_awg_tools /out/usr/bin/awg       /usr/bin/awg
 COPY --from=build_awg_tools /out/usr/bin/awg-quick /usr/bin/awg-quick

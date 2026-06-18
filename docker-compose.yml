@@ -18,6 +18,11 @@ services:
       # Active-probe responder (answers DNS/STUN/QUIC-VN scanners). Off by
       # default. Requires IMITATE_PROTOCOL != none and CAP_NET_RAW.
       - RESPONDER=${RESPONDER:-false}
+      # QUIC handshake mode (quic only): true = full TLS-1.3 handshake
+      # continuation, false = Version-Negotiation only (weaker).
+      - QUIC_HANDSHAKE=${QUIC_HANDSHAKE:-true}
+      # SNI/cert domain for the QUIC handshake's default self-signed cert.
+      - QUIC_CERT_DOMAIN=${QUIC_CERT_DOMAIN:-cloudflare.com}
       # Uncomment and adjust as needed:
       # - WG_DEFAULT_DNS=1.1.1.1
       # - WG_DEFAULT_ADDRESS=10.8.0.x

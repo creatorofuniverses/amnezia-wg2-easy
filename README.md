@@ -210,7 +210,7 @@ on `WG_PORT` that answers active DPI probes with protocol-valid replies, matchin
 |--------------------|---------------------|
 | `dns`  | DNS `SERVFAIL` echoing the query's question |
 | `stun` | STUN Binding-Success with `XOR-MAPPED-ADDRESS` |
-| `quic` | QUIC Version-Negotiation (GREASE; never claims v1) |
+| `quic` | Full QUIC **TLS-1.3 handshake** (ServerHello + self-signed cert) for v1 Initials; Version-Negotiation (GREASE) for other versions |
 | `sip`  | **Nothing** — SIP is shaping-only for now (least-protected setting) |
 
 Only first-contact packets (conntrack `NEW`) reach the responder; established
@@ -222,8 +222,11 @@ defense is lost.
 capabilities (both set in `docker-compose.yml`). The host needs the
 `nfnetlink_queue` and `nf_conntrack` modules (standard on mainstream distros).
 
-> The current QUIC answer is Version-Negotiation only; the full TLS-1.3 handshake
-> continuation is a later phase.
+> The QUIC answer is a full TLS-1.3 handshake continuation (`QUIC_HANDSHAKE=true`,
+> the default) via an embedded `quic-go` endpoint; set `QUIC_HANDSHAKE=false` for
+> Version-Negotiation only. The handshake's self-signed cert (for `QUIC_CERT_DOMAIN`)
+> defeats a cheap "does it speak QUIC/TLS" prober but is itself visible to a
+> chain-validating one — a known, accepted limitation.
 
 ## Updating
 

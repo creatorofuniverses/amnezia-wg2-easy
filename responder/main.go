@@ -38,11 +38,36 @@ func main() {
 		queueNum = uint16(n)
 	}
 
-	cfg := Config{Params: params, Protocol: proto}
+	wgPort := uint16(51820)
+	if p := os.Getenv("WG_PORT"); p != "" {
+		n, err := strconv.ParseUint(p, 10, 16)
+		if err != nil {
+			log.Fatalf("responder: bad WG_PORT: %v", err)
+		}
+		wgPort = uint16(n)
+	}
+
+	quicHandshake := strings.ToLower(os.Getenv("QUIC_HANDSHAKE")) != "false" // default true
+	certDomain := os.Getenv("QUIC_CERT_DOMAIN")
+	if certDomain == "" {
+		certDomain = "cloudflare.com"
+	}
+	if proto == "quic" && quicHandshake && certDomain == "" {
+		log.Fatal("responder: QUIC_CERT_DOMAIN must be non-empty when QUIC_HANDSHAKE=true")
+	}
+
+	cfg := Config{
+		Params:        params,
+		Protocol:      proto,
+		QUICHandshake: quicHandshake,
+		CertDomain:    certDomain,
+		WGPort:        wgPort,
+	}
 	if proto == "sip" {
 		log.Println("responder: IMITATE_PROTOCOL=sip — shaping only; SIP probes are NOT answered")
 	}
-	log.Printf("responder: protocol=%s queue=%d — answering probes on WG_PORT", proto, queueNum)
+	log.Printf("responder: protocol=%s queue=%d quic_handshake=%v — answering probes on WG_PORT",
+		proto, queueNum, proto == "quic" && quicHandshake)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
