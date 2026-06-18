@@ -25,7 +25,11 @@ npm run start                    # docker run with required caps (NET_ADMIN)
 docker compose up --detach       # or use docker-compose.yml (set WG_HOST and PASSWORD first)
 ```
 
-There is no test suite. Quality relies on ESLint and manual testing.
+The Node app has no test suite — quality relies on ESLint and manual testing. The Go probe-responder (`responder/`) **does** have unit tests; build & test it directly:
+
+```bash
+cd responder && go build ./... && go test ./...   # Go 1.25; deps: quic-go, go-nfqueue/v2
+```
 
 ## Architecture
 
@@ -45,7 +49,9 @@ There is no test suite. Quality relies on ESLint and manual testing.
 - `js/i18n.js` — Translations (en, ua, ru, tr, no, pl, fr, de, ca, es)
 - `js/vendor/` — Minified third-party libs (Vue, ApexCharts, timeago, sha256)
 
-**Config storage**: WireGuard state lives in `/etc/amnezia/amneziawg/wg0.json` (structured data) synced to `/etc/amnezia/amneziawg/wg0.conf` (WireGuard format).
+**Probe-responder** (`responder/`): a Go module (`package main`, Go 1.25) that runs as an **NFQUEUE ingress filter** on `WG_PORT`, answering active DPI probes with protocol-valid replies so the port doesn't look like a silent WireGuard endpoint. Off the data fast path; enabled by `RESPONDER=true`. Key files: `config.go`/`awg.go` (wg0.conf S/H parse + `classifyAwgPacket`), `detect.go` (QUIC/DNS/STUN discriminators), `dns.go`/`stun.go`/`quicvn.go` (single-shot reply builders), `quiccert.go`/`quicconn.go`/`quichs.go` (embedded `quic-go` TLS-1.3 handshake endpoint over a custom `net.PacketConn`), `egress.go`/`packet.go` (raw-socket reply injection + L3 parse), `responder.go`/`nfqueue.go`/`main.go` (decision logic + NFQUEUE loop + entry). Verdict order is correctness-critical: `classifyAwgPacket` runs **before** probe detection. The QUIC handshake uses a **conntrack-mark flow-claim** (set via the nfqueue verdict's NFQA_CT facility — `SetVerdictWithOption(..., WithConnMark())`, **not** the deprecated `SetVerdictWithConnMark`) so the multi-RTT handshake stays queued; claimed packets are **ACCEPTed** (not DROPped), since a DROP destroys the unconfirmed conntrack entry and its mark.
+
+**Config storage**: WireGuard state lives in `/etc/amnezia/amneziawg/wg0.json` (structured data) synced to `/etc/amnezia/amneziawg/wg0.conf` (WireGuard format). The responder reads `wg0.conf` once at startup for S/H params.
 
 ## Key Patterns
 
@@ -72,9 +78,13 @@ Key config (all optional except `WG_HOST` for production):
 | `S3, S4` | AWG 2.0 padding (cookie reply, data packet) | Random |
 | `H1-H4` | Header magic ranges (format: `min-max` or single value) | Random |
 | `I1-I5` | CPS signatures (client-only, AWG 2.0) | (none) |
+| `IMITATE_PROTOCOL` | Shape obfuscation to a protocol (`none\|quic\|dns\|stun\|sip`); server + client configs | none |
+| `RESPONDER` | Enable the Go active-probe responder (needs `IMITATE_PROTOCOL != none`, `NET_RAW`) | false |
+| `QUIC_HANDSHAKE` | QUIC responder: full TLS-1.3 handshake (true) vs Version-Negotiation only (false) | true |
+| `QUIC_CERT_DOMAIN` | SNI/cert domain for the QUIC handshake's self-signed cert | cloudflare.com |
 | `UI_TRAFFIC_STATS` | Enable RX/TX stats | false |
 | `UI_CHART_TYPE` | Chart type (0-3) | 0 |
 
 ## Deployment
 
-Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Runtime built from the `amneziawg-go-proxy` (userspace fallback) and `amneziawg-tools-proxy` (awg/awg-quick) forks on `alpine:3.20`; uses the host kernel module (DKMS) when present. Config path: `/etc/amnezia/amneziawg/`. Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` capability and `/dev/net/tun` device access (`SYS_MODULE` no longer needed; kernel module is host-installed via DKMS).
+Docker image: `ghcr.io/creatorofuniverses/amnezia-wg-easy` (multi-arch: amd64, arm/v6, arm/v7, arm64/v8). Multi-stage `Dockerfile`: builds `amneziawg-go` (userspace fallback) and `amneziawg-tools` (awg/awg-quick) from source, plus the Go responder (`golang:1.25-alpine` stage), onto an `alpine:3.20` runtime; uses the host kernel module (DKMS) when present. `docker-entrypoint.sh` supervises the Node UI (primary, `exec`'d) and the optional responder (crash-isolated side process under `dumb-init`), rendering/tearing down the NFQUEUE rules. Config path: `/etc/amnezia/amneziawg/`. Production deploys from `production` branch via GitHub Actions. Requires `NET_ADMIN` and `/dev/net/tun`; the responder additionally needs `NET_RAW` (raw-socket reply injection). `SYS_MODULE` no longer needed — kernel module is host-installed via DKMS.

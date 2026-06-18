@@ -140,6 +140,10 @@ These options can be configured by setting environment variables using `-e KEY="
 | `I3` | - | - | CPS signature line 3 (client-only). |
 | `I4` | - | - | CPS signature line 4 (client-only). |
 | `I5` | - | - | CPS signature line 5 (client-only). |
+| `IMITATE_PROTOCOL` | `none` | `quic` | Shape obfuscation to resemble a real protocol (`none\|quic\|dns\|stun\|sip`), applied to the server **and** every generated client config. See [Native Traffic Imitation](#native-traffic-imitation). |
+| `RESPONDER` | `false` | `true` | Run the Go active-probe responder on `WG_PORT`. Requires `IMITATE_PROTOCOL != none`, `NET_ADMIN` + `NET_RAW`. See [Active-probe responder](#active-probe-responder-responder). |
+| `QUIC_HANDSHAKE` | `true` | `false` | QUIC responder mode: `true` = full TLS-1.3 handshake, `false` = Version-Negotiation only. Only meaningful with `IMITATE_PROTOCOL=quic` + `RESPONDER=true`. |
+| `QUIC_CERT_DOMAIN` | `cloudflare.com` | `www.google.com` | SNI/cert domain for the QUIC handshake's default self-signed certificate. |
 
 > If you change `WG_PORT`, make sure to also change the exposed port.
 
@@ -148,6 +152,74 @@ These options can be configured by setting environment variables using `-e KEY="
 The QR codes and downloadable configs use the **classic AmneziaWG** format (compatible with the [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-tools) client apps). They are **not** in the AmneziaVPN format — importing them into the AmneziaVPN app is not supported yet.
 
 <!-- TODO: Add AmneziaVPN config format support (JSON-based, includes protocol selection and server metadata) -->
+
+## Architecture
+
+Everything runs in **one container, one network namespace**, supervised by
+[`docker-entrypoint.sh`](docker-entrypoint.sh) under `dumb-init`:
+
+- a **Node.js Web UI** (the [H3](https://h3.dev/) framework, not Express) that manages clients and renders `wg0.conf`/`wg0.json`;
+- the **AmneziaWG datapath** brought up by `awg-quick` — the **host kernel module** (DKMS) when present, otherwise the bundled **`amneziawg-go`** userspace fork (automatic fallback, same image);
+- an optional **Go probe-responder** (`responder/`) that sits as an **NFQUEUE ingress filter** on `WG_PORT`, answering active DPI probes so the port doesn't betray itself by staying silent — entirely off the data fast path.
+
+```
+            WG_PORT/udp (published)                         PORT/tcp  (Web UI)
+ client / DPI probe ───────────┐                                  │
+                               ▼                                  ▼
+ ┌─ single container · one netns ──────────────────────────────────────────────┐
+ │                                                                              │
+ │  iptables INPUT  (installed only when RESPONDER=true)                        │
+ │    udp dpt:WG_PORT, connmark 0x1  ─┐  (claimed QUIC flows, multi-RTT)        │
+ │    udp dpt:WG_PORT, ctstate NEW   ─┴─►  NFQUEUE 0  ─►  Go responder          │
+ │    (ESTABLISHED + unclaimed ─────────────────────────►  awg0, kernel path)  │
+ │                                                  │                           │
+ │                            decide() per packet:  ▼                           │
+ │              1. real AWG packet (S1–S4 / H1–H4 match)?  → ACCEPT (→ awg0)    │
+ │              2. probe matching IMITATE_PROTOCOL?        → reply + DROP/claim │
+ │              3. otherwise (genuine junk)               → ACCEPT (awg0 drops) │
+ │                                                  │                           │
+ │                      replies injected via a raw socket (src port = WG_PORT)  │
+ │                                                                              │
+ │  awg0   AmneziaWG tunnel  ── host kernel module (DKMS)  │  amneziawg-go      │
+ │  node   Web UI + client / config management              :PORT/tcp          │
+ └──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Fast path:** real handshakes are `NEW` → ACCEPTed once → conntrack marks the
+flow `ESTABLISHED` → every later packet bypasses userspace. Bulk VPN throughput
+never traverses Go. **Order is correctness-critical:** `classifyAwgPacket` runs
+*before* any probe detection, so a real (shaped) handshake is always recognised
+as AWG before the responder would try to answer it as a probe. The responder is
+**crash-isolated** — if it dies, the NFQUEUE rules are torn down and the tunnel
+keeps serving; only active-probe defense is lost.
+
+### Repository structure
+
+```
+.
+├── src/                    Node.js backend (H3) + Vue 2 Web UI
+│   ├── server.js           entry point (graceful shutdown)
+│   ├── config.js           env-var configuration
+│   ├── lib/                WireGuard.js (config gen + awg CLI), Server.js (routes/auth), Util.js
+│   ├── services/           singleton Server / WireGuard instances
+│   └── www/                SPA — index.html, js/app.js, js/api.js, js/i18n.js, js/vendor/
+├── responder/              Go probe-responder (NFQUEUE side-filter, module awg-responder)
+│   ├── config.go awg.go    wg0.conf S/H parser + classifyAwgPacket (handshake + transport)
+│   ├── detect.go           QUIC / DNS / STUN discriminators
+│   ├── dns.go stun.go quicvn.go    single-shot reply builders (SERVFAIL / Binding / VN)
+│   ├── quiccert.go quicconn.go quichs.go   embedded quic-go TLS-1.3 handshake endpoint
+│   ├── egress.go packet.go raw-socket reply injection (v4/v6) + L3 parsing
+│   ├── responder.go nfqueue.go main.go   decision logic + NFQUEUE loop + entrypoint
+│   └── cmd/markspike/      throwaway connmark-claim prototype (not shipped)
+├── Dockerfile              multi-stage: amneziawg-go + amneziawg-tools + responder + runtime
+├── docker-entrypoint.sh    supervises Node + responder; renders/tears down NFQUEUE rules
+├── docker-compose.yml  .env.example  justfile
+└── docs/superpowers/       design specs + implementation plans
+```
+
+Config state lives in `/etc/amnezia/amneziawg/`: `wg0.json` (structured) is the
+source of truth, synced to `wg0.conf` (WireGuard format) which both datapaths and
+the responder consume.
 
 ## Native Traffic Imitation
 
@@ -213,20 +285,25 @@ on `WG_PORT` that answers active DPI probes with protocol-valid replies, matchin
 | `quic` | Full QUIC **TLS-1.3 handshake** (ServerHello + self-signed cert) for v1 Initials; Version-Negotiation (GREASE) for other versions |
 | `sip`  | **Nothing** — SIP is shaping-only for now (least-protected setting) |
 
-Only first-contact packets (conntrack `NEW`) reach the responder; established
-tunnels and bulk throughput stay entirely in the kernel. The responder is
-crash-isolated: if it dies, the tunnel keeps serving and only active-probe
-defense is lost.
+Only first-contact packets (conntrack `NEW`) — plus QUIC probe flows the
+responder explicitly *claims* via a conntrack mark to carry the multi-RTT
+handshake — reach the responder; established tunnels and bulk throughput stay
+entirely in the kernel. The responder is crash-isolated: if it dies, the NFQUEUE
+rules are torn down, the tunnel keeps serving, and only active-probe defense is
+lost.
 
 **Requirements:** `IMITATE_PROTOCOL != none`, and the `NET_ADMIN` + `NET_RAW`
-capabilities (both set in `docker-compose.yml`). The host needs the
-`nfnetlink_queue` and `nf_conntrack` modules (standard on mainstream distros).
+capabilities (both set in `docker-compose.yml`; add `--cap-add=NET_RAW` if you use
+the `docker run` command above). The host needs the `nfnetlink_queue` and
+`nf_conntrack` modules (standard on mainstream distros).
 
 > The QUIC answer is a full TLS-1.3 handshake continuation (`QUIC_HANDSHAKE=true`,
 > the default) via an embedded `quic-go` endpoint; set `QUIC_HANDSHAKE=false` for
-> Version-Negotiation only. The handshake's self-signed cert (for `QUIC_CERT_DOMAIN`)
-> defeats a cheap "does it speak QUIC/TLS" prober but is itself visible to a
-> chain-validating one — a known, accepted limitation.
+> Version-Negotiation only. The responder completes the handshake and then lets the
+> connection idle out (it does not serve application requests), so the port behaves
+> like a real but unused QUIC server. The handshake's self-signed cert (for
+> `QUIC_CERT_DOMAIN`) defeats a cheap "does it speak QUIC/TLS" prober but is itself
+> visible to a chain-validating one — a known, accepted limitation.
 
 ## Updating
 
