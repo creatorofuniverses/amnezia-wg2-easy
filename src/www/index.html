@@ -151,27 +151,6 @@
   --elevation-modal:  0 16px 48px rgba(0,0,0,0.55);
   }
 
-  /* TEMP shim — lets unmigrated awg-* classes resolve until Task 6 removes them */
-  :root, .dark {
-    --accent: var(--primary);
-    --accent-hover: var(--primary);
-    --accent-light: var(--primary);
-    --accent-glow: transparent;
-    --accent-subtle: var(--surface-container-highest);
-    --online: var(--status-connected);
-    --online-glow: transparent;
-    --danger: var(--error);
-    --danger-hover: var(--error);
-    --bg-light: var(--background);
-    --bg-dark: var(--background);
-    --surface-light: var(--surface-container);
-    --surface-light-border: var(--outline-variant);
-    --surface-dark-card: var(--surface-container);
-    --surface-dark-border: var(--outline-variant);
-    --text-light-muted: var(--on-surface-variant);
-    --text-dark-muted: var(--on-surface-variant);
-  }
-
   * {
     font-family: var(--font-sans) !important;
   }
@@ -181,13 +160,9 @@
   }
 
   body {
-    background: var(--bg-light) !important;
+    background: var(--background) !important;
     min-height: 100vh;
     transition: background-color 0.3s ease;
-  }
-
-  .dark body {
-    background: var(--bg-dark) !important;
   }
 
   /* ── Cards ─────────────────────────────────────────────────── */
@@ -274,6 +249,7 @@
     outline: none !important;
   }
   input.awg-invalid { border-color: var(--error) !important; }
+  input::placeholder { color: var(--on-surface-variant); opacity: 0.7; }
 
   /* ── Modals ────────────────────────────────────────────────── */
 
@@ -408,7 +384,7 @@
   .awg-version { font-family: var(--font-mono) !important; font-size: 11px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--primary-container); color: var(--on-primary-container); font-weight: var(--weight-semibold); }
 </style>
 
-<body class="bg-gray-50 dark:bg-neutral-800">
+<body>
   <div id="app">
     <div v-cloak class="container mx-auto max-w-3xl px-3 md:px-0 mt-4 xs:mt-6">
       <div v-if="authenticated === true">
