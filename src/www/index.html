@@ -681,6 +681,19 @@
                       </svg>
                     </button>
 
+                    <!-- Copy share link -->
+                    <button v-if="client.downloadableConfig"
+                      class="awg-icon-btn align-middle text-gray-400 dark:text-neutral-400 transition"
+                      :title="copiedClientId === client.id ? $t('copied') : $t('copyShareLink')"
+                      @click="copyShareLink(client)">
+                      <svg v-if="copiedClientId === client.id" class="w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <svg v-else class="w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m6.328-1.328a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
+                      </svg>
+                    </button>
+
                     <!-- Delete -->
                     <button
                       class="awg-icon-btn align-middle transition"
