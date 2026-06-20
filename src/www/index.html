@@ -190,41 +190,9 @@
     background: var(--bg-dark) !important;
   }
 
-  /* Subtle animated grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    opacity: 0.015;
-    pointer-events: none;
-    z-index: 9999;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  }
-
-  .dark body::before {
-    opacity: 0.03;
-  }
-
   /* ── Cards ─────────────────────────────────────────────────── */
 
-  .awg-card {
-    background: var(--surface-light);
-    border: 1px solid var(--surface-light-border);
-    border-radius: 16px;
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.04),
-      0 8px 24px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  }
-
-  .dark .awg-card {
-    background: var(--surface-dark-card);
-    border-color: var(--surface-dark-border);
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.2),
-      0 8px 32px rgba(0, 0, 0, 0.15);
-  }
+  .awg-card { background: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: var(--radius-card); box-shadow: none; overflow: hidden; }
 
   /* Delete / danger button */
   .awg-btn-danger { background-color: var(--error) !important; color: #fff !important; border-radius: var(--radius-input); }
@@ -232,14 +200,8 @@
 
   /* ── Online indicator ──────────────────────────────────────── */
 
-  .awg-online-ping {
-    background-color: rgba(52, 211, 153, 0.3) !important;
-  }
-
-  .awg-online-dot {
-    background-color: var(--online) !important;
-    box-shadow: 0 0 8px var(--online-glow);
-  }
+  .awg-online-dot { background-color: var(--status-connected) !important; box-shadow: none; }
+  .awg-offline-dot { background-color: var(--status-disconnected) !important; }
 
   /* ── Header ────────────────────────────────────────────────── */
 
@@ -279,17 +241,14 @@
 
   /* ── Client rows ───────────────────────────────────────────── */
 
-  .awg-client-row {
-    transition: background-color 0.15s ease;
-  }
-
-  .awg-client-row:hover {
-    background-color: rgba(0, 0, 0, 0.015);
-  }
-
-  .dark .awg-client-row:hover {
-    background-color: rgba(255, 255, 255, 0.02);
-  }
+  .awg-client-row { transition: background-color .15s ease; border-radius: var(--radius-list-row); }
+  .awg-client-row:hover { background-color: var(--surface-container-highest); }
+  .awg-client-connected { background: var(--connected-fill); border: 1.5px solid var(--connected-stroke); border-radius: var(--radius-list-row); }
+  .awg-stats-strip { display:flex; gap: var(--space-xl); border-top: 1px solid var(--outline-variant); margin-top: var(--space-md); padding-top: var(--space-md); }
+  .awg-stat-label { font-size: var(--type-stat-label); font-weight: var(--weight-semibold); letter-spacing: .05em; text-transform: uppercase; color: var(--on-surface-variant); }
+  .awg-stat-value { font-family: var(--font-mono); font-size: var(--type-mono); }
+  .awg-stat-value--rate { color: var(--primary); }
+  .awg-stat-value--meta { color: var(--on-surface); }
 
   /* ── Monospace data ────────────────────────────────────────── */
 
@@ -297,14 +256,7 @@
 
   /* ── Avatar ────────────────────────────────────────────────── */
 
-  .awg-avatar {
-    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-    border-radius: 12px;
-  }
-
-  .dark .awg-avatar {
-    background: linear-gradient(135deg, #1e293b, #334155);
-  }
+  .awg-avatar { background: var(--surface-container-highest); border-radius: 12px; }
 
   /* ── Inputs ────────────────────────────────────────────────── */
 
@@ -549,7 +501,8 @@
             <!-- Client -->
             <div v-if="clients && clients.length > 0" v-for="client in clients" :key="client.id"
               class="awg-client-row awg-fade-in relative overflow-hidden border-b last:border-b-0 border-gray-100 dark:border-neutral-600 border-solid"
-              style="border-color: var(--surface-light-border)">
+              :class="{ 'awg-client-connected': client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10)) }"
+              style="border-color: var(--outline-variant)">
 
               <!-- Chart -->
               <div v-if="uiChartType" class="absolute z-0 bottom-0 left-0 right-0 h-6" >
@@ -574,12 +527,11 @@
                     </svg>
                     <img v-if="client.avatar" :src="client.avatar" class="w-10 absolute top-0 left-0" style="border-radius: 12px" />
 
-                    <div
-                      v-if="client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
-                      <div
-                        class="animate-ping w-4 h-4 p-1 awg-online-ping rounded-full absolute -bottom-1 -right-1">
-                      </div>
+                    <div v-if="client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
                       <div class="w-2 h-2 awg-online-dot rounded-full absolute bottom-0 right-0"></div>
+                    </div>
+                    <div v-else>
+                      <div class="w-2 h-2 awg-offline-dot rounded-full absolute bottom-0 right-0"></div>
                     </div>
                   </div>
 
@@ -756,7 +708,7 @@
 
                     <!-- Delete -->
                     <button
-                      class="awg-icon-btn align-middle text-gray-400 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition"
+                      class="awg-icon-btn align-middle transition"
                       :title="$t('deleteClient')" @click="clientDelete = client">
                       <svg class="w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
@@ -767,22 +719,30 @@
                   </div>
                 </div>
 
+                <!-- Stats strip — connected clients only -->
+                <div class="awg-stats-strip" v-if="!uiTrafficStats && client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
+                  <div>
+                    <div class="awg-stat-label">{{$t('totalDownload')}}</div>
+                    <div class="awg-stat-value awg-stat-value--rate">{{client.transferTx | bytes}}</div>
+                  </div>
+                  <div>
+                    <div class="awg-stat-label">{{$t('totalUpload')}}</div>
+                    <div class="awg-stat-value awg-stat-value--rate">{{client.transferRx | bytes}}</div>
+                  </div>
+                  <div>
+                    <div class="awg-stat-label">HANDSHAKE</div>
+                    <div class="awg-stat-value awg-stat-value--meta">{{new Date(client.latestHandshakeAt) | timeago}}</div>
+                  </div>
+                </div>
+
               </div>
 
             </div>
-            <div v-if="clients && clients.length === 0">
-              <p class="text-center m-10 text-gray-400 dark:text-neutral-400 text-sm">
-                {{$t("noClients")}}<br /><br />
-                <button @click="clientCreate = true; clientCreateName = '';"
-                  class="awg-btn awg-btn-primary py-2 px-4 inline-flex items-center">
-                  <svg class="w-4 mr-2" inline xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span class="text-sm">{{$t("newClient")}}</span>
-                </button>
-              </p>
+            <div v-if="clients && clients.length === 0" class="flex flex-col items-center justify-center text-center" style="padding: var(--space-xl) 0;">
+              <div style="background: var(--surface-container-highest); border-radius: var(--space-xl); padding: var(--space-xl);">
+                <img :src="theme !== 'dark' ? './img/signal-mark.svg' : './img/signal-mark-light.svg'" width="40" />
+              </div>
+              <p class="awg-subtitle" style="margin-top: var(--space-md);">{{$t('noClients') || 'No clients yet'}}</p>
             </div>
             <div v-if="clients === null" class="p-5">
               <svg class="w-5 animate-spin mx-auto awg-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
