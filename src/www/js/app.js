@@ -39,8 +39,8 @@ const UI_CHART_TYPES = [
 ];
 
 const CHART_COLORS = {
-  rx: { light: 'rgba(128,128,128,0.3)', dark: 'rgba(255,255,255,0.3)' },
-  tx: { light: 'rgba(128,128,128,0.4)', dark: 'rgba(255,255,255,0.3)' },
+  rx: { light: 'rgba(13,148,136,0.55)', dark: 'rgba(45,212,191,0.6)' },
+  tx: { light: 'rgba(13,148,136,0.85)', dark: 'rgba(45,212,191,0.9)' },
   gradient: { light: ['rgba(0,0,0,1.0)', 'rgba(0,0,0,1.0)'], dark: ['rgba(128,128,128,0)', 'rgba(128,128,128,0)'] },
 };
 
@@ -159,6 +159,9 @@ new Vue({
     },
   },
   methods: {
+    isConnected(client) {
+      return client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt)) < 1000 * 60 * 10);
+    },
     dateTime: (value) => {
       return new Intl.DateTimeFormat(undefined, {
         year: 'numeric',

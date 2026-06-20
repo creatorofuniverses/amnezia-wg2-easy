@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Manrope";font-weight:400;font-display:swap;src:url("web-admin/fonts/Manrope-Regular.ttf") format("truetype")}
+@font-face{font-family:"Manrope";font-weight:500;font-display:swap;src:url("web-admin/fonts/Manrope-Medium.ttf") format("truetype")}
+@font-face{font-family:"Manrope";font-weight:600;font-display:swap;src:url("web-admin/fonts/Manrope-SemiBold.ttf") format("truetype")}
+@font-face{font-family:"Manrope";font-weight:700;font-display:swap;src:url("web-admin/fonts/Manrope-Bold.ttf") format("truetype")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url("web-admin/fonts/JetBrainsMono-Regular.ttf") format("truetype")}
+@font-face{font-family:"JetBrains Mono";font-weight:500;font-display:swap;src:url("web-admin/fonts/JetBrainsMono-Medium.ttf") format("truetype")}
+:root{
+  --primary:#0D9488;--on-primary:#FFFFFF;--primary-container:#CCFBF1;--on-primary-container:#00201B;
+  --secondary-container:#CCE8E1;--on-secondary-container:#06201B;
+  --background:#F4F6F8;--surface:#F4F6F8;--surface-container-lowest:#FFFFFF;--surface-container-low:#FAFBFC;--surface-container:#FFFFFF;--surface-container-high:#F6F8FA;--surface-container-highest:#F1F3F6;--surface-bright:#FFFFFF;--surface-dim:#D8DCE1;--surface-variant:#DCE0E6;
+  --on-surface:#16181B;--on-surface-variant:#5B6066;
+  --outline:#74777F;--outline-variant:#E2E5EA;--surface-tint:#0D9488;
+  --connected-fill:#ECFDF8;--connected-stroke:#99E6D8;
+  --status-connected:#16A34A;--status-connecting:#B45309;--status-disconnected:#8A9099;--error:#BA1A1A;--error-container:#FFDAD6;--on-error-container:#410002;
+  --font-sans:"Manrope",system-ui,sans-serif;--font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --radius-input:12px;--radius-card:16px;--radius-list-row:18px;--radius-pill:999px;
+}
+.dark{
+  --primary:#2DD4BF;--on-primary:#06231F;--primary-container:#0F3D38;--on-primary-container:#5EEAD4;
+  --secondary-container:#2A413D;--on-secondary-container:#CDE9E2;
+  --background:#0E0F11;--surface:#0E0F11;--surface-container-lowest:#08090A;--surface-container-low:#131518;--surface-container:#16181B;--surface-container-high:#202327;--surface-container-highest:#2A2E33;--surface-bright:#34373C;--surface-dim:#0C0D0F;--surface-variant:#2C3137;
+  --on-surface:#E6E8EC;--on-surface-variant:#9AA0A8;
+  --outline:#8E9099;--outline-variant:#23272C;--surface-tint:#2DD4BF;
+  --connected-fill:#14211F;--connected-stroke:#1E3A36;
+  --status-connected:#4ADE80;--status-connecting:#FBBF24;--status-disconnected:#6B7178;--error:#F87171;--error-container:#93000A;--on-error-container:#FFDAD6;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#15171c;font-family:"Manrope",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+</style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;background:#15171c;background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0);background-size:28px 28px;padding:56px 56px 96px;box-sizing:border-box;color:#E6E8EC;font-family:var(--font-sans)">
+
+  <!-- ============ TITLE ============ -->
+  <div style="max-width:1180px;margin:0 auto 8px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+      <div style="width:56px;height:56px;border-radius:16px;background:#0E0F11;display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="34" height="34" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" stroke="#2DD4BF" stroke-width="7"/><path d="M42 84 L60 34 L78 84" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 64 L46 64 L52 50 L60 78 L68 56 L74 64 L86 64" stroke="#5EEAD4" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;color:#F4F6F8">AmneziaWG — Web Admin Panel</div>
+        <div style="font-size:14px;color:#9AA0A8;margin-top:3px;font-weight:500">Restyle spec &amp; mockups · &ldquo;Network Teal&rdquo; (Material 3) · for Claude Code handoff</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-family:var(--font-mono);font-size:11.5px;color:#9AA0A8">
+      <span style="background:#0E0F11;border:1px solid #2a2e35;border-radius:999px;padding:5px 12px">Vue 2 SPA · single index.html</span>
+      <span style="background:#0E0F11;border:1px solid #2a2e35;border-radius:999px;padding:5px 12px">Tailwind + CSS vars</span>
+      <span style="background:#0E0F11;border:1px solid #2a2e35;border-radius:999px;padding:5px 12px">Manrope + JetBrains Mono</span>
+      <span style="background:#0E0F11;border:1px solid #2a2e35;border-radius:999px;padding:5px 12px;color:#5EEAD4">Light shown · dark = .dark class</span>
+      <span style="background:#0E0F11;border:1px solid #2a2e35;border-radius:999px;padding:5px 12px;color:#5EEAD4">tokens.css + SPEC.md in /web-admin</span>
+    </div>
+  </div>
+
+  <!-- ============ FOUNDATIONS ============ -->
+  <div style="max-width:1180px;margin:48px auto 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.16em;color:#5EEAD4">01 · FOUNDATIONS</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#2a2e35,transparent)"></span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <!-- Light palette -->
+      <div style="flex:1;min-width:330px;background:#0E0F11;border:1px solid #23272C;border-radius:18px;padding:20px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9AA0A8;margin-bottom:14px">LIGHT THEME — :root</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#0D9488"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">--primary<br>#0D9488</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#CCFBF1"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">primary-container<br>#CCFBF1</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#F4F6F8"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">surface<br>#F4F6F8</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#FFFFFF"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">surface-container<br>#FFFFFF</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#ECFDF8"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">connected-fill<br>#ECFDF8</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #23272C"><div style="height:42px;background:#E2E5EA"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:#9AA0A8">outline-variant<br>#E2E5EA</div></div>
+        </div>
+      </div>
+
+      <!-- Dark palette (true via .dark) -->
+      <div class="dark" style="flex:1;min-width:330px;background:var(--surface);border:1px solid var(--outline-variant);border-radius:18px;padding:20px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--on-surface-variant);margin-bottom:14px">DARK THEME — .dark</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--primary)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">--primary<br>#2DD4BF</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--primary-container)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">primary-container<br>#0F3D38</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--surface)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">surface<br>#0E0F11</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--surface-container)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">surface-container<br>#16181B</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--connected-fill)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">connected-fill<br>#14211F</div></div>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant)"><div style="height:42px;background:var(--surface-container-highest)"></div><div style="padding:6px 8px;font-family:var(--font-mono);font-size:9.5px;color:var(--on-surface-variant)">container-highest<br>#2A2E33</div></div>
+        </div>
+      </div>
+
+      <!-- Status + type -->
+      <div style="flex:1;min-width:330px;background:#0E0F11;border:1px solid #23272C;border-radius:18px;padding:20px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9AA0A8;margin-bottom:14px">STATUS · MEANING CONSTANT</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:999px;background:#16A34A"></span><span style="font-size:13px;color:#E6E8EC">Connected</span><span style="font-family:var(--font-mono);font-size:10px;color:#6B7178;margin-left:auto">#16A34A / #4ADE80</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:999px;background:#B45309"></span><span style="font-size:13px;color:#E6E8EC">Connecting</span><span style="font-family:var(--font-mono);font-size:10px;color:#6B7178;margin-left:auto">#B45309 / #FBBF24</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:999px;background:#8A9099"></span><span style="font-size:13px;color:#E6E8EC">Disconnected</span><span style="font-family:var(--font-mono);font-size:10px;color:#6B7178;margin-left:auto">#8A9099 / #6B7178</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:999px;background:#BA1A1A"></span><span style="font-size:13px;color:#E6E8EC">Error / danger</span><span style="font-family:var(--font-mono);font-size:10px;color:#6B7178;margin-left:auto">#BA1A1A / #F87171</span></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9AA0A8;margin-bottom:12px">TYPE</div>
+        <div style="font-weight:600;font-size:22px;color:#E6E8EC;line-height:1.1">Manrope SemiBold 22 — title</div>
+        <div style="font-weight:400;font-size:15px;color:#9AA0A8;margin-top:4px">Manrope Regular — body &amp; field labels</div>
+        <div style="font-family:var(--font-mono);font-size:13px;color:#5EEAD4;margin-top:6px">JetBrains Mono — 10.8.0.2 · 48.2&nbsp;MB · keys</div>
+      </div>
+    </div>
+
+    <!-- shape / spacing strip -->
+    <div style="margin-top:20px;background:#0E0F11;border:1px solid #23272C;border-radius:18px;padding:18px 22px;display:flex;flex-wrap:wrap;gap:28px;align-items:center">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9AA0A8">SHAPE</div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:34px;height:34px;background:#1c2024;border:1px solid #2DD4BF;border-radius:12px"></span><span style="font-family:var(--font-mono);font-size:11px;color:#9AA0A8">12 input/chip</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:34px;height:34px;background:#1c2024;border:1px solid #2DD4BF;border-radius:16px"></span><span style="font-family:var(--font-mono);font-size:11px;color:#9AA0A8">16 card</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:34px;height:34px;background:#1c2024;border:1px solid #2DD4BF;border-radius:18px"></span><span style="font-family:var(--font-mono);font-size:11px;color:#9AA0A8">18 list row</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:34px;height:18px;background:#1c2024;border:1px solid #2DD4BF;border-radius:999px"></span><span style="font-family:var(--font-mono);font-size:11px;color:#9AA0A8">999 pill</span></div>
+      <span style="width:1px;height:34px;background:#2a2e35"></span>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9AA0A8">SPACING 4px grid</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:#9AA0A8">4 · 8 · 12 · 16 · 24 &nbsp;|&nbsp; 16 card pad · 12 gap</div>
+    </div>
+  </div>
+
+  <!-- ============ COMPONENTS ============ -->
+  <div style="max-width:1180px;margin:52px auto 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.16em;color:#5EEAD4">02 · COMPONENTS</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#2a2e35,transparent)"></span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <!-- Buttons -->
+      <div style="flex:1;min-width:300px;background:#F4F6F8;border:1px solid #23272C;border-radius:18px;padding:22px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:#8A9099;margin-bottom:16px">BUTTONS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <button style="border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:11px 20px;border-radius:12px;cursor:pointer">Sign In</button>
+          <button style="border:none;background:#CCFBF1;color:#00201B;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:11px 20px;border-radius:12px;cursor:pointer">Download</button>
+          <button style="border:none;background:transparent;color:#5B6066;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:11px 14px;border-radius:12px;cursor:pointer">Cancel</button>
+          <button style="border:none;background:#E2E5EA;color:#9AA0A8;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:11px 20px;border-radius:12px">Disabled</button>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:14px">
+          <button style="border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 16px;border-radius:12px;display:flex;align-items:center;gap:7px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</button>
+          <button style="border:none;background:#BA1A1A;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 18px;border-radius:12px;cursor:pointer">Delete</button>
+          <span style="font-family:var(--font-mono);font-size:10px;color:#8A9099">filled · tonal · text · danger — radius 12, never pill</span>
+        </div>
+      </div>
+
+      <!-- Inputs -->
+      <div style="flex:1;min-width:300px;background:#F4F6F8;border:1px solid #23272C;border-radius:18px;padding:22px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:#8A9099;margin-bottom:16px">TEXT INPUTS — outlined</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <input placeholder="Name" style="font-family:var(--font-sans);font-size:15px;color:#16181B;background:#FFFFFF;border:1px solid #E2E5EA;border-radius:12px;padding:12px 14px;outline:none" />
+          <div style="font-family:var(--font-sans);font-size:15px;color:#16181B;background:#FFFFFF;border:2px solid #0D9488;border-radius:12px;padding:11px 13px">laptop-home<span style="display:inline-block;width:1px;height:16px;background:#0D9488;vertical-align:-3px;margin-left:1px"></span></div>
+          <input value="10.8.0.4" style="font-family:var(--font-mono);font-size:14px;color:#16181B;background:#FFFFFF;border:1px solid #E2E5EA;border-radius:12px;padding:12px 14px;outline:none" />
+          <span style="font-family:var(--font-mono);font-size:10px;color:#8A9099">default · focused (2px primary) · mono value</span>
+        </div>
+      </div>
+
+      <!-- Status / badge / switch -->
+      <div style="flex:1;min-width:300px;background:#F4F6F8;border:1px solid #23272C;border-radius:18px;padding:22px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:#8A9099;margin-bottom:16px">STATUS · BADGE · SWITCH</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #E2E5EA;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:#16181B"><span style="width:8px;height:8px;border-radius:999px;background:#16A34A"></span>Connected</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #E2E5EA;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:#16181B"><span style="width:8px;height:8px;border-radius:999px;background:#8A9099"></span>Offline</span>
+          <span style="background:#CCFBF1;color:#00201B;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:3px 9px;border-radius:999px">AMNEZIA</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px">
+          <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">S1</span> 86</span>
+          <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">H1</span> 5</span>
+          <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">I1</span> 0xf3a…</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:#8A9099">obfuscation chips</span>
+        </div>
+        <div style="display:flex;gap:18px;align-items:center">
+          <span style="width:44px;height:26px;border-radius:999px;background:#0D9488;position:relative;flex:none"><span style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></span>
+          <span style="width:44px;height:26px;border-radius:999px;background:#DCE0E6;position:relative;flex:none"><span style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:#8A9099">enable / disable toggle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- field-row + card anatomy -->
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;margin-top:20px">
+      <div style="flex:1;min-width:300px;background:#F4F6F8;border:1px solid #23272C;border-radius:18px;padding:22px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:#8A9099;margin-bottom:14px">FIELD-ROW PATTERN</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488;margin:0 0 7px 4px">INTERFACE</div>
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:2px 16px">
+          <div style="padding:10px 0;border-bottom:1px solid #E2E5EA"><div style="font-size:12px;color:#5B6066">Address</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px">10.8.0.2/32</div></div>
+          <div style="padding:10px 0;border-bottom:1px solid #E2E5EA"><div style="font-size:12px;color:#5B6066">DNS servers</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px">1.1.1.1</div></div>
+          <div style="padding:10px 0;display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-size:12px;color:#5B6066">Public key</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">fGNn+tuQoQnPTZFcQ1k2…</div></div><span style="color:#5B6066;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></span></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:#8A9099;margin-top:10px">label outside ·11/700/caps teal · 1px dividers, none after last</div>
+      </div>
+
+      <div style="flex:1;min-width:300px;background:#F4F6F8;border:1px solid #23272C;border-radius:18px;padding:22px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:#8A9099;margin-bottom:14px">CARD ANATOMY — client row</div>
+        <!-- disconnected -->
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="width:38px;height:38px;border-radius:999px;background:#F1F3F6;display:flex;align-items:center;justify-content:center;flex:none;color:#8A9099"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+          <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;color:#16181B">laptop-home</div><div style="font-family:var(--font-mono);font-size:11.5px;color:#5B6066;margin-top:1px">10.8.0.3 · 2h ago</div></div>
+          <span style="width:40px;height:24px;border-radius:999px;background:#DCE0E6;position:relative;flex:none"><span style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;background:#fff"></span></span>
+        </div>
+        <!-- connected -->
+        <div style="background:#ECFDF8;border:1.5px solid #99E6D8;border-radius:18px;padding:13px 15px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="width:38px;height:38px;border-radius:999px;background:#CCFBF1;display:flex;align-items:center;justify-content:center;flex:none;color:#0D9488"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+            <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:999px;background:#16A34A"></span><span style="font-size:15px;font-weight:600;color:#16181B">phone-eu</span></div><div style="font-family:var(--font-mono);font-size:11.5px;color:#5B6066;margin-top:1px">10.8.0.2</div></div>
+            <span style="width:40px;height:24px;border-radius:999px;background:#0D9488;position:relative;flex:none"><span style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:999px;background:#fff"></span></span>
+          </div>
+          <div style="display:flex;gap:22px;margin-top:12px;padding-top:11px;border-top:1px solid #99E6D8">
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">DOWNLOAD</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:500;color:#0D9488;margin-top:2px">48.2 MB</div></div>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">UPLOAD</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:500;color:#0D9488;margin-top:2px">7.1 MB</div></div>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">HANDSHAKE</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:500;color:#16181B;margin-top:2px">23s ago</div></div>
+          </div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:#8A9099;margin-top:10px">connected = teal-tinted fill + 1.5px stroke + stats strip</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREENS ============ -->
+  <div style="max-width:1180px;margin:56px auto 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px">
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.16em;color:#5EEAD4">03 · SCREENS</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#2a2e35,transparent)"></span>
+    </div>
+
+    <!-- LOGIN -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">LOGIN</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:48px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span><span style="margin-left:14px;font-family:var(--font-mono);font-size:11px;color:#8A9099;background:#fff;border-radius:6px;padding:3px 12px">panel.amneziawg.local</span></div>
+        <div style="background:#F4F6F8;padding:40px;min-height:440px;display:flex;flex-direction:column;align-items:center">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:48px">
+            <svg width="40" height="40" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" stroke="#0D9488" stroke-width="7"/><path d="M42 84 L60 34 L78 84" stroke="#16181B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 64 L46 64 L52 50 L60 78 L68 56 L74 64 L86 64" stroke="#0D9488" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-weight:700;font-size:28px;letter-spacing:-0.02em;color:#16181B">AmneziaWG</span>
+          </div>
+          <div style="width:360px;background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;align-items:center">
+            <div style="width:84px;height:84px;border-radius:999px;background:#0D9488;display:flex;align-items:center;justify-content:center;margin-bottom:26px;color:#fff"><svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></div>
+            <input placeholder="Password" type="password" style="width:100%;font-family:var(--font-sans);font-size:15px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:13px 14px;outline:none;box-sizing:border-box;margin-bottom:14px" />
+            <button style="width:100%;border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:15px;padding:13px;border-radius:12px;cursor:pointer">Sign In</button>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">RESTYLE</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Drop the neumorphic glow + extra-round card. Card = 16px radius, 1px <span style="font-family:var(--font-mono);color:#9AA0A8">outline-variant</span>, flat. Avatar well in solid <span style="font-family:var(--font-mono);color:#9AA0A8">--primary</span>.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">INPUT &amp; BUTTON</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Outlined input, focus → 2px <span style="font-family:var(--font-mono);color:#9AA0A8">--primary</span> stroke. Sign In = filled, 12px radius (not pill), disabled until field non-empty.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">LOGO</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Signal mark replaces the old rainbow circle-A. On light: teal ring + wave, ink-black &ldquo;A&rdquo;.</div></div>
+      </div>
+    </div>
+
+    <!-- HEADER TOOLBAR + UPDATE BANNER -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">HEADER TOOLBAR · UPDATE BANNER</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:48px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span></div>
+        <div style="background:#F4F6F8;padding:22px 26px 34px">
+          <div style="display:flex;align-items:center">
+            <div style="display:flex;align-items:center;gap:11px">
+              <svg width="34" height="34" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" stroke="#0D9488" stroke-width="7"/><path d="M42 84 L60 34 L78 84" stroke="#16181B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 64 L46 64 L52 50 L60 78 L68 56 L74 64 L86 64" stroke="#0D9488" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><div style="font-weight:700;font-size:22px;letter-spacing:-0.01em;color:#16181B;line-height:1">AmneziaWG</div><div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.18em;color:#8A9099;margin-top:3px">SECURE TUNNEL</div></div>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+              <button style="width:38px;height:38px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></button>
+              <button style="width:38px;height:38px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="m7 14 3-4 3 3 4-6"/></svg></button>
+              <button style="height:38px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;gap:8px;padding:0 14px 0 12px;color:#5B6066;font-family:var(--font-sans);font-weight:600;font-size:13px;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Logout</button>
+            </div>
+          </div>
+          <div style="margin-top:18px;background:#CCFBF1;border:1px solid #99E6D8;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px">
+            <span style="width:8px;height:8px;border-radius:999px;background:#0D9488;flex:none"></span>
+            <span style="font-size:13px;color:#00201B;font-weight:500">A new version <span style="font-family:var(--font-mono)">v15.1.0</span> is available.</span>
+            <button style="margin-left:auto;border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:12.5px;padding:7px 14px;border-radius:999px;cursor:pointer">Update</button>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">TOOLBAR</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Flat on <span style="font-family:var(--font-mono);color:#9AA0A8">--surface</span>, no shadow. Logo + wordmark left; icon buttons right: theme toggle, charts toggle, logout. 38px circular targets, <span style="font-family:var(--font-mono);color:#9AA0A8">outline-variant</span> border.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">UPDATE BANNER</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6"><span style="font-family:var(--font-mono);color:#9AA0A8">primary-container</span> fill, tonal — not alarming red. Version is mono. Dismissible; Update = filled pill action.</div></div>
+      </div>
+    </div>
+
+    <!-- CLIENT LIST -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">CLIENT LIST — connected + disconnected</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:48px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span></div>
+        <div style="background:#F4F6F8;padding:26px;min-height:440px">
+          <div style="display:flex;align-items:center;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px"><svg width="28" height="28" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" stroke="#0D9488" stroke-width="7"/><path d="M42 84 L60 34 L78 84" stroke="#16181B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 64 L46 64 L52 50 L60 78 L68 56 L74 64 L86 64" stroke="#0D9488" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-weight:700;font-size:19px;color:#16181B;letter-spacing:-0.01em">AmneziaWG</span></div>
+            <div style="margin-left:auto;display:flex;gap:6px"><span style="width:34px;height:34px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;justify-content:center;color:#5B6066"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></span></div>
+          </div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:18px">
+            <div style="display:flex;align-items:center;margin-bottom:16px"><span style="font-size:22px;font-weight:600;color:#16181B">Clients</span><button style="margin-left:auto;border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 16px;border-radius:12px;display:flex;align-items:center;gap:7px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</button></div>
+
+            <!-- connected -->
+            <div style="background:#ECFDF8;border:1.5px solid #99E6D8;border-radius:18px;padding:14px 16px;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:13px">
+                <span style="width:40px;height:40px;border-radius:999px;background:#CCFBF1;display:flex;align-items:center;justify-content:center;flex:none;color:#0D9488"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+                <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:999px;background:#16A34A"></span><span style="font-size:16px;font-weight:600;color:#16181B">phone-eu</span></div><div style="font-family:var(--font-mono);font-size:12px;color:#5B6066;margin-top:2px">10.8.0.2</div></div>
+                <div style="display:flex;align-items:center;gap:4px;flex:none">
+                  <span style="width:42px;height:25px;border-radius:999px;background:#0D9488;position:relative;margin-right:6px"><span style="position:absolute;top:3px;right:3px;width:19px;height:19px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span>
+                  <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-4 5 5 5-5M5 20h14"/></svg></button>
+                  <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v3M14 20h3M20 20v.5"/></svg></button>
+                  <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></button>
+                </div>
+              </div>
+              <div style="display:flex;gap:34px;margin-top:13px;padding-top:12px;border-top:1px solid #99E6D8">
+                <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">DOWNLOAD</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#0D9488;margin-top:3px">1.2 MB/s</div></div>
+                <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">UPLOAD</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#0D9488;margin-top:3px">340 KB/s</div></div>
+                <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">HANDSHAKE</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:3px">23s ago</div></div>
+              </div>
+            </div>
+
+            <!-- disconnected -->
+            <div style="background:#fff;border:1px solid #E2E5EA;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:13px">
+              <span style="width:40px;height:40px;border-radius:999px;background:#F1F3F6;display:flex;align-items:center;justify-content:center;flex:none;color:#8A9099"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+              <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:999px;background:#8A9099"></span><span style="font-size:16px;font-weight:600;color:#16181B">laptop-home</span></div><div style="font-family:var(--font-mono);font-size:12px;color:#5B6066;margin-top:2px">10.8.0.3 · ↓ 0 B/s · ↑ 0 B/s · 2h ago</div></div>
+              <div style="display:flex;align-items:center;gap:4px;flex:none">
+                <span style="width:42px;height:25px;border-radius:999px;background:#DCE0E6;position:relative;margin-right:6px"><span style="position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span>
+                <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-4 5 5 5-5M5 20h14"/></svg></button>
+                <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v3M14 20h3M20 20v.5"/></svg></button>
+                <button style="width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">CONNECTED ROW</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6"><span style="font-family:var(--font-mono);color:#9AA0A8">connected-fill</span> + 1.5px <span style="font-family:var(--font-mono);color:#9AA0A8">connected-stroke</span>, 18px radius. Green dot by name. Stats strip: DOWNLOAD/UPLOAD teal mono, HANDSHAKE neutral mono.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">DISCONNECTED ROW</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Plain <span style="font-family:var(--font-mono);color:#9AA0A8">surface-container</span>, grey dot, no stats strip — meta collapses to one mono line.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">ROW ACTIONS</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Enable toggle · download config · QR · delete. Name &amp; address stay inline-editable (click to edit → focused input).</div></div>
+      </div>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">CLIENT LIST — empty state</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:48px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span></div>
+        <div style="background:#F4F6F8;padding:26px;min-height:420px">
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:18px">
+            <div style="display:flex;align-items:center;margin-bottom:8px"><span style="font-size:22px;font-weight:600;color:#16181B">Clients</span><button style="margin-left:auto;border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 16px;border-radius:12px;display:flex;align-items:center;gap:7px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</button></div>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:54px 20px 50px">
+              <div style="width:96px;height:96px;border-radius:24px;background:#F1F3F6;display:flex;align-items:center;justify-content:center;margin-bottom:22px"><svg width="52" height="52" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" stroke="#0D9488" stroke-width="7"/><path d="M42 84 L60 34 L78 84" stroke="#16181B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 64 L46 64 L52 50 L60 78 L68 56 L74 64 L86 64" stroke="#0D9488" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div style="font-size:18px;font-weight:600;color:#16181B;margin-bottom:6px">No clients yet</div>
+              <div style="font-size:14px;color:#5B6066;text-align:center;max-width:300px;line-height:1.5">Create your first client to generate a config and hand out access.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">EMPTY STATE</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Centered Signal mark in a 24px <span style="font-family:var(--font-mono);color:#9AA0A8">surface-container-highest</span> well + short hint. Keep the New button in the card header so the action is always reachable.</div></div>
+      </div>
+    </div>
+
+    <!-- DETAIL / CONFIG -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">CLIENT DETAIL / CONFIG VIEW</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:48px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span></div>
+        <div style="background:#F4F6F8;padding:26px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+            <button style="width:38px;height:38px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;justify-content:center;color:#16181B;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <span style="font-size:22px;font-weight:600;color:#16181B">phone-eu</span>
+            <button style="margin-left:auto;border:1px solid #E2E5EA;background:#fff;color:#5B6066;font-family:var(--font-sans);font-weight:600;font-size:13px;padding:8px 14px;border-radius:12px;display:flex;align-items:center;gap:7px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit</button>
+          </div>
+
+          <!-- connection summary card -->
+          <div style="background:#ECFDF8;border:1.5px solid #99E6D8;border-radius:18px;padding:16px;margin-bottom:18px">
+            <div style="display:flex;align-items:center">
+              <div style="flex:1"><div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:999px;background:#16A34A"></span><span style="font-size:15px;font-weight:600;color:#16A34A">Connected</span></div><div style="font-family:var(--font-mono);font-size:12.5px;color:#5B6066;margin-top:4px">201.51.6.117:443</div></div>
+              <span style="width:46px;height:27px;border-radius:999px;background:#0D9488;position:relative;flex:none"><span style="position:absolute;top:3px;right:3px;width:21px;height:21px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span>
+            </div>
+            <div style="display:flex;gap:40px;margin-top:14px;padding-top:13px;border-top:1px solid #99E6D8">
+              <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">DOWNLOAD</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#0D9488;margin-top:3px">48.2 MB</div></div>
+              <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">UPLOAD</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#0D9488;margin-top:3px">7.1 MB</div></div>
+              <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#5B6066">HANDSHAKE</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:3px">23s ago</div></div>
+            </div>
+          </div>
+
+          <!-- INTERFACE -->
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488;margin:0 0 7px 4px">INTERFACE</div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:2px 16px;margin-bottom:16px">
+            <div style="padding:10px 0;border-bottom:1px solid #E2E5EA"><div style="font-size:12px;color:#5B6066">Address</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px">10.8.0.2/32</div></div>
+            <div style="padding:10px 0;display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-size:12px;color:#5B6066">Public key</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">fGNn+tuQoQnPTZFcQ1k2hF8s9d…</div></div><span style="color:#5B6066;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></span></div>
+          </div>
+
+          <!-- OBFUSCATION -->
+          <div style="display:flex;align-items:center;gap:8px;margin:0 0 7px 4px"><span style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488">OBFUSCATION</span><span style="background:#CCFBF1;color:#00201B;font-size:9px;font-weight:700;letter-spacing:0.06em;padding:2px 8px;border-radius:999px">AMNEZIA</span></div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;overflow:hidden;margin-bottom:16px">
+            <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+              <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#16181B">Advanced parameters</div><div style="font-size:12px;color:#5B6066;margin-top:1px">AmneziaWG 2.0 · S1–S4 · H1–H4 · I1–I5</div></div>
+              <span style="color:#5B6066"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+            <div style="padding:0 16px 16px;display:flex;flex-wrap:wrap;gap:8px">
+              <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">S1</span> 86</span>
+              <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">S2</span> 574</span>
+              <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">H1</span> 5</span>
+              <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">H2</span> 19</span>
+              <span style="font-family:var(--font-mono);font-size:12px;background:#F1F3F6;border:1px solid #E2E5EA;border-radius:999px;padding:4px 10px;color:#16181B"><span style="color:#5B6066">I1</span> 0xf3a9…</span>
+            </div>
+          </div>
+
+          <!-- PEER -->
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488;margin:0 0 7px 4px">PEER</div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:2px 16px">
+            <div style="padding:10px 0;border-bottom:1px solid #E2E5EA"><div style="font-size:12px;color:#5B6066">Endpoint</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px">201.51.6.117:443</div></div>
+            <div style="padding:10px 0"><div style="font-size:12px;color:#5B6066">Allowed IPs</div><div style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:#16181B;margin-top:2px">0.0.0.0/0, ::/0</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">SECTION LABELS</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">OUTSIDE the card — 11px/700/caps, <span style="font-family:var(--font-mono);color:#9AA0A8">--primary</span>, ls .12em, 4px from edge, 7px above card.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">AMNEZIA BADGE</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Only on OBFUSCATION, same row as the label. <span style="font-family:var(--font-mono);color:#9AA0A8">primary-container</span> bg, static (not tappable).</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">OBFUSCATION PARAMS</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Hidden behind an Advanced expander → mono chips (<span style="font-family:var(--font-mono);color:#9AA0A8">label</span> muted + value). Chevron rotates on expand, ~180ms.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">SUMMARY CARD + SWITCH</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Connection switch lives here (end of row 1), not in a section header. OFF → card drops teal tint, stats hide, address → &ldquo;Tap to connect&rdquo;.</div></div>
+      </div>
+    </div>
+
+    <!-- CREATE / EDIT FORM -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">CREATE / EDIT CLIENT — full form</span></div>
+    <div style="display:flex;gap:28px;align-items:flex-start;margin-bottom:8px">
+      <div style="flex:none;width:760px;border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.45);background:#fff">
+        <div style="height:36px;background:#E9ECF0;display:flex;align-items:center;gap:7px;padding:0 14px"><span style="width:11px;height:11px;border-radius:999px;background:#ff5f57"></span><span style="width:11px;height:11px;border-radius:999px;background:#febc2e"></span><span style="width:11px;height:11px;border-radius:999px;background:#28c840"></span></div>
+        <div style="background:#F4F6F8;padding:26px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+            <button style="width:38px;height:38px;border-radius:999px;border:1px solid #E2E5EA;background:#fff;display:flex;align-items:center;justify-content:center;color:#16181B;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <span style="font-size:22px;font-weight:600;color:#16181B">Edit client</span>
+            <button style="margin-left:auto;border:none;background:#0D9488;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:10px 20px;border-radius:12px;cursor:pointer">Save</button>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488;margin:0 0 7px 4px">CLIENT</div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:14px">
+            <div><div style="font-size:12px;color:#5B6066;margin-bottom:6px">Name</div><input value="phone-eu" style="width:100%;font-family:var(--font-sans);font-size:15px;color:#16181B;background:#fff;border:2px solid #0D9488;border-radius:12px;padding:11px 13px;outline:none;box-sizing:border-box" /></div>
+            <div><div style="font-size:12px;color:#5B6066;margin-bottom:6px">Address</div><input value="10.8.0.2" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:12px 13px;outline:none;box-sizing:border-box" /></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin:0 0 7px 4px"><span style="font-size:11px;font-weight:700;letter-spacing:0.12em;color:#0D9488">OBFUSCATION</span><span style="background:#CCFBF1;color:#00201B;font-size:9px;font-weight:700;letter-spacing:0.06em;padding:2px 8px;border-radius:999px">AMNEZIA</span></div>
+          <div style="background:#fff;border:1px solid #E2E5EA;border-radius:16px;overflow:hidden">
+            <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #E2E5EA">
+              <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#16181B">Advanced parameters</div><div style="font-size:12px;color:#5B6066;margin-top:1px">Override per-client. Leave blank to inherit server defaults.</div></div>
+              <span style="color:#0D9488;transform:rotate(180deg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+            <div style="padding:16px">
+              <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;color:#8A9099;margin-bottom:9px">JUNK PACKETS — S1–S4</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">S1</div><input value="86" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">S2</div><input value="574" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">S3</div><input value="0" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">S4</div><input value="0" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+              </div>
+              <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;color:#8A9099;margin-bottom:9px">HEADERS — H1–H4</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">H1</div><input value="5" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">H2</div><input value="19" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">H3</div><input value="3491" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+                <div><div style="font-family:var(--font-mono);font-size:11px;color:#5B6066;margin-bottom:4px">H4</div><input value="61" style="width:100%;font-family:var(--font-mono);font-size:14px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:9px 11px;outline:none;box-sizing:border-box" /></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px;max-width:340px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">HEADER</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Close (✕) + title left, Save (filled, 12px radius — never pill) right. &ldquo;New client&rdquo; on create, &ldquo;Edit client&rdquo; on edit.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">OBFUSCATION FIELDS</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Collapsed by default. Expanded → grouped mono number fields (S1–S4, H1–H4, I1–I5), 4-up grid, sub-labels in mono caps. Blank = inherit server default.</div></div>
+        <div style="background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:#5EEAD4;font-weight:600;margin-bottom:5px">VALIDATION</div><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Numeric only; out-of-range → 1px <span style="font-family:var(--font-mono);color:#9AA0A8">--error</span> stroke + helper text. Save disabled while invalid.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <div style="max-width:1180px;margin:56px auto 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px">
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.16em;color:#5EEAD4">04 · MODALS</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#2a2e35,transparent)"></span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+      <!-- create -->
+      <div style="flex:1;min-width:320px">
+        <div style="margin-bottom:12px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">CREATE CLIENT</span></div>
+        <div style="background:rgba(16,24,40,0.45);border-radius:14px;padding:38px 26px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(1px)">
+          <div style="width:100%;max-width:380px;background:#fff;border-radius:18px;box-shadow:0 16px 48px rgba(16,24,40,0.22);overflow:hidden">
+            <div style="padding:20px 22px;display:flex;align-items:flex-start;gap:14px">
+              <span style="width:44px;height:44px;border-radius:14px;background:#0D9488;display:flex;align-items:center;justify-content:center;flex:none;color:#fff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+              <div style="flex:1;padding-top:2px"><div style="font-size:18px;font-weight:600;color:#16181B;margin-bottom:12px">New Client</div><input placeholder="Name" style="width:100%;font-family:var(--font-sans);font-size:15px;color:#16181B;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:12px 14px;outline:none;box-sizing:border-box" /></div>
+            </div>
+            <div style="padding:14px 22px;background:#FAFBFC;border-top:1px solid #E2E5EA;display:flex;justify-content:flex-end;gap:10px">
+              <button style="border:1px solid #E2E5EA;background:#fff;color:#5B6066;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 18px;border-radius:12px;cursor:pointer">Cancel</button>
+              <button style="border:none;background:#E2E5EA;color:#9AA0A8;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 20px;border-radius:12px">Create</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Teal plus-tile, outlined Name input. Create stays disabled (tonal grey) until the name is non-empty, then → filled <span style="font-family:var(--font-mono);color:#9AA0A8">--primary</span>. Footer on <span style="font-family:var(--font-mono);color:#9AA0A8">surface-container-low</span>.</div></div>
+      </div>
+
+      <!-- delete -->
+      <div style="flex:1;min-width:320px">
+        <div style="margin-bottom:12px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">DELETE CONFIRMATION</span></div>
+        <div style="background:rgba(16,24,40,0.45);border-radius:14px;padding:38px 26px;display:flex;align-items:center;justify-content:center">
+          <div style="width:100%;max-width:380px;background:#fff;border-radius:18px;box-shadow:0 16px 48px rgba(16,24,40,0.22);overflow:hidden">
+            <div style="padding:20px 22px;display:flex;align-items:flex-start;gap:14px">
+              <span style="width:44px;height:44px;border-radius:14px;background:#FFDAD6;display:flex;align-items:center;justify-content:center;flex:none;color:#BA1A1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></span>
+              <div style="flex:1;padding-top:2px"><div style="font-size:18px;font-weight:600;color:#16181B;margin-bottom:6px">Delete client?</div><div style="font-size:14px;color:#5B6066;line-height:1.5">This permanently removes <span style="font-family:var(--font-mono);color:#16181B">phone-eu</span> and revokes its config. This can&rsquo;t be undone.</div></div>
+            </div>
+            <div style="padding:14px 22px;background:#FAFBFC;border-top:1px solid #E2E5EA;display:flex;justify-content:flex-end;gap:10px">
+              <button style="border:1px solid #E2E5EA;background:#fff;color:#5B6066;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 18px;border-radius:12px;cursor:pointer">Cancel</button>
+              <button style="border:none;background:#BA1A1A;color:#fff;font-family:var(--font-sans);font-weight:600;font-size:14px;padding:9px 20px;border-radius:12px;cursor:pointer">Delete</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">Danger icon well in <span style="font-family:var(--font-mono);color:#9AA0A8">error-container</span>, client name in mono. Destructive action = filled <span style="font-family:var(--font-mono);color:#9AA0A8">--error</span>; Cancel is the safe default.</div></div>
+      </div>
+
+      <!-- QR -->
+      <div style="flex:1;min-width:320px">
+        <div style="margin-bottom:12px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:999px;background:#2DD4BF"></span><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em;color:#C9CED6">QR CODE</span></div>
+        <div style="background:rgba(16,24,40,0.45);border-radius:14px;padding:30px 26px;display:flex;align-items:center;justify-content:center">
+          <div style="width:100%;max-width:300px;background:#fff;border-radius:18px;box-shadow:0 16px 48px rgba(16,24,40,0.22);padding:22px;position:relative">
+            <button style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:999px;border:none;background:#F1F3F6;display:flex;align-items:center;justify-content:center;color:#5B6066;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#5B6066;margin-bottom:14px">phone-eu</div>
+            <div style="width:100%;aspect-ratio:1;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:14px;box-sizing:border-box">
+              <svg viewBox="0 0 29 29" width="100%" height="100%" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><path fill="#16181B" d="M0 0h7v7h-7zM1 1v5h5v-5zM2 2h3v3h-3zM22 0h7v7h-7zM23 1v5h5v-5zM24 2h3v3h-3zM0 22h7v7h-7zM1 23v5h5v-5zM2 24h3v3h-3zM9 0h1v1h-1zM11 0h2v1h-2zM15 0h1v2h-1zM18 0h1v1h-1zM9 2h2v1h-2zM13 2h1v3h-1zM17 2h2v1h-2zM20 2h1v1h-1zM9 4h1v1h-1zM11 4h1v2h-1zM16 4h1v1h-1zM18 4h3v1h-3zM9 6h4v1h-4zM15 6h1v1h-1zM17 6h1v1h-1zM19 6h1v1h-1zM0 9h1v1h-1zM2 9h2v1h-2zM5 9h2v1h-2zM8 9h1v2h-1zM10 9h1v1h-1zM12 9h3v1h-3zM16 9h1v1h-1zM19 9h2v1h-2zM22 9h1v1h-1zM24 9h1v1h-1zM26 9h3v1h-3zM4 11h1v2h-1zM6 11h1v1h-1zM11 11h2v1h-2zM15 11h1v1h-1zM18 11h1v2h-1zM21 11h1v1h-1zM24 11h2v1h-2zM27 11h1v1h-1zM0 13h2v1h-2zM3 13h1v1h-1zM9 13h1v1h-1zM13 13h3v1h-3zM20 13h1v1h-1zM23 13h1v2h-1zM26 13h2v1h-2zM5 15h2v1h-2zM8 15h1v1h-1zM11 15h1v2h-1zM14 15h1v1h-1zM17 15h2v1h-2zM21 15h1v1h-1zM25 15h1v1h-1zM27 15h2v1h-2zM1 17h1v1h-1zM3 17h3v1h-3zM7 17h2v1h-2zM10 17h1v1h-1zM13 17h1v2h-1zM16 17h2v1h-2zM20 17h2v1h-2zM24 17h1v1h-1zM26 17h1v1h-1zM9 19h2v1h-2zM12 19h1v1h-1zM15 19h2v1h-2zM18 19h1v1h-1zM21 19h1v1h-1zM23 19h3v1h-3zM27 19h1v1h-1zM9 21h1v1h-1zM11 21h3v1h-3zM16 21h1v3h-1zM19 21h2v1h-2zM22 21h1v1h-1zM25 21h3v1h-3zM9 23h1v1h-1zM12 23h2v1h-2zM18 23h2v1h-2zM21 23h1v2h-1zM24 23h1v1h-1zM27 23h1v2h-1zM9 25h3v1h-3zM13 25h2v1h-2zM18 25h1v1h-1zM23 25h1v1h-1zM25 25h2v1h-2zM10 27h1v1h-1zM14 27h3v1h-3zM19 27h2v1h-2zM23 27h1v1h-1zM26 27h2v1h-2z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;background:rgba(45,212,191,0.07);border-left:2px solid #2DD4BF;border-radius:7px;padding:11px 13px"><div style="font-size:12.5px;line-height:1.55;color:#C9CED6">White card centered on scrim. Quiet zone preserved (14px white pad). Client name as caption; ✕ close in a <span style="font-family:var(--font-mono);color:#9AA0A8">surface-container-highest</span> circle.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DARK REFERENCE ============ -->
+  <div style="max-width:1180px;margin:56px auto 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.16em;color:#5EEAD4">05 · DARK THEME — reference</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#2a2e35,transparent)"></span>
+    </div>
+    <div class="dark" style="background:var(--surface);border:1px solid var(--outline-variant);border-radius:18px;padding:26px">
+      <div style="max-width:520px">
+        <div style="display:flex;align-items:center;margin-bottom:18px"><span style="font-size:20px;font-weight:600;color:var(--on-surface)">Clients</span><button style="margin-left:auto;border:none;background:var(--primary);color:var(--on-primary);font-family:var(--font-sans);font-weight:600;font-size:13px;padding:8px 14px;border-radius:12px;display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</button></div>
+        <div style="background:var(--connected-fill);border:1.5px solid var(--connected-stroke);border-radius:18px;padding:13px 15px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="width:38px;height:38px;border-radius:999px;background:var(--primary-container);display:flex;align-items:center;justify-content:center;flex:none;color:var(--primary)"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+            <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:999px;background:var(--status-connected)"></span><span style="font-size:15px;font-weight:600;color:var(--on-surface)">phone-eu</span></div><div style="font-family:var(--font-mono);font-size:11.5px;color:var(--on-surface-variant);margin-top:1px">10.8.0.2</div></div>
+            <span style="width:42px;height:25px;border-radius:999px;background:var(--primary);position:relative;flex:none"><span style="position:absolute;top:3px;right:3px;width:19px;height:19px;border-radius:999px;background:#fff"></span></span>
+          </div>
+          <div style="display:flex;gap:30px;margin-top:12px;padding-top:11px;border-top:1px solid var(--connected-stroke)">
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:var(--on-surface-variant)">DOWNLOAD</div><div style="font-family:var(--font-mono);font-size:13px;color:var(--primary);margin-top:2px">1.2 MB/s</div></div>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:var(--on-surface-variant)">UPLOAD</div><div style="font-family:var(--font-mono);font-size:13px;color:var(--primary);margin-top:2px">340 KB/s</div></div>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:var(--on-surface-variant)">HANDSHAKE</div><div style="font-family:var(--font-mono);font-size:13px;color:var(--on-surface);margin-top:2px">23s ago</div></div>
+          </div>
+        </div>
+        <div style="background:var(--surface-container);border:1px solid var(--outline-variant);border-radius:18px;padding:13px 15px;display:flex;align-items:center;gap:12px">
+          <span style="width:38px;height:38px;border-radius:999px;background:var(--surface-container-highest);display:flex;align-items:center;justify-content:center;flex:none;color:var(--on-surface-variant)"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+          <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:999px;background:var(--status-disconnected)"></span><span style="font-size:15px;font-weight:600;color:var(--on-surface)">laptop-home</span></div><div style="font-family:var(--font-mono);font-size:11.5px;color:var(--on-surface-variant);margin-top:1px">10.8.0.3 · 2h ago</div></div>
+          <span style="width:42px;height:25px;border-radius:999px;background:var(--surface-variant);position:relative;flex:none"><span style="position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:999px;background:#E6E8EC"></span></span>
+        </div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--on-surface-variant);margin-top:16px">Same components, <span style="color:var(--primary)">.dark</span> class flips every token. Status colors keep their meaning; teal brightens to #2DD4BF.</div>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+</body>
+</html>

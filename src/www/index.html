@@ -10,47 +10,145 @@
   <link rel="apple-touch-icon" href="./img/apple-touch-icon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <style>
+  @font-face { font-family: "Manrope"; font-weight: 400; font-display: swap; src: url("./fonts/Manrope-Regular.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 500; font-display: swap; src: url("./fonts/Manrope-Medium.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 600; font-display: swap; src: url("./fonts/Manrope-SemiBold.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 700; font-display: swap; src: url("./fonts/Manrope-Bold.ttf") format("truetype"); }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("./fonts/JetBrainsMono-Regular.ttf") format("truetype"); }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url("./fonts/JetBrainsMono-Medium.ttf") format("truetype"); }
+
   [v-cloak] {
     display: none;
   }
 
-  /* ── Stealth Console Theme ────────────────────────────────── */
+  /* ── Network Teal / Material 3 Design Tokens ─────────────── */
 
   :root {
-    --accent: #0d9488;
-    --accent-hover: #0f766e;
-    --accent-light: #14b8a6;
-    --accent-glow: rgba(20, 184, 166, 0.25);
-    --accent-subtle: rgba(20, 184, 166, 0.08);
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --online: #34d399;
-    --online-glow: rgba(52, 211, 153, 0.4);
-    --surface-light: #ffffff;
-    --surface-light-hover: #f8fafc;
-    --surface-light-border: rgba(0, 0, 0, 0.06);
-    --bg-light: #f1f5f9;
-    --text-light: #1e293b;
-    --text-light-secondary: #64748b;
-    --text-light-muted: #94a3b8;
-    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  /* ---- Primary ---- */
+  --primary:               #0D9488;
+  --on-primary:            #FFFFFF;
+  --primary-container:     #CCFBF1;
+  --on-primary-container:  #00201B;
+
+  /* ---- Secondary (selection / tonal) ---- */
+  --secondary-container:   #CCE8E1;
+  --on-secondary-container:#06201B;
+
+  /* ---- Surfaces (M3 container ladder) ---- */
+  --background:                #F4F6F8;
+  --surface:                   #F4F6F8;
+  --surface-container-lowest:  #FFFFFF;
+  --surface-container-low:     #FAFBFC;
+  --surface-container:         #FFFFFF;
+  --surface-container-high:    #F6F8FA;
+  --surface-container-highest: #F1F3F6;
+  --surface-bright:            #FFFFFF;
+  --surface-dim:               #D8DCE1;
+  --surface-variant:           #DCE0E6;
+
+  /* ---- Text on surface ---- */
+  --on-surface:          #16181B;
+  --on-surface-variant:  #5B6066;
+
+  /* ---- Lines ---- */
+  --outline:          #74777F;
+  --outline-variant:  #E2E5EA;
+
+  /* ---- Elevated-surface tint ---- */
+  --surface-tint:  #0D9488;
+
+  /* ---- Connected / active client row ---- */
+  --connected-fill:    #ECFDF8;
+  --connected-stroke:  #99E6D8;
+
+  /* ---- Status (meaning constant across themes) ---- */
+  --status-connected:     #16A34A;
+  --status-connecting:    #B45309;
+  --status-disconnected:  #8A9099;
+  --error:                #BA1A1A;
+  --error-container:      #FFDAD6;
+  --on-error-container:   #410002;
+
+  /* ---- Type ---- */
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* role sizes */
+  --type-title:        22px;  /* screen / toolbar title — SemiBold */
+  --type-client-name:  16px;  /* client name — SemiBold */
+  --type-section:      11px;  /* INTERFACE / OBFUSCATION / PEER — SemiBold caps, ls .12em */
+  --type-field-value:  15px;  /* field value — Medium */
+  --type-field-label:  12px;  /* field label — Regular */
+  --type-status:       14px;  /* status — SemiBold */
+  --type-stat-label:   11px;  /* DOWNLOAD / UPLOAD — SemiBold caps, ls .05em */
+  --type-mono:         13px;  /* stat values, keys, IPs */
+  --type-button:       14px;  /* button — SemiBold */
+
+  /* ---- Shape ---- */
+  --radius-input:     12px;
+  --radius-card:      16px;
+  --radius-list-row:  18px;
+  --radius-pill:      999px;
+
+  /* ---- Spacing (4px grid) ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --card-padding: 16px;
+  --card-gap: 12px;
+
+  /* ---- Elevation (tonal-first; cards flat) ---- */
+  --elevation-card:   none;
+  --elevation-modal:  0 12px 40px rgba(16,24,40,0.16);
   }
 
   .dark {
-    --surface-dark: #0f172a;
-    --surface-dark-card: #1e293b;
-    --surface-dark-card-hover: #263349;
-    --surface-dark-border: rgba(255, 255, 255, 0.06);
-    --bg-dark: #020617;
-    --text-dark: #e2e8f0;
-    --text-dark-secondary: #94a3b8;
-    --text-dark-muted: #475569;
+  --primary:               #2DD4BF;
+  --on-primary:            #06231F;
+  --primary-container:     #0F3D38;
+  --on-primary-container:  #5EEAD4;
+
+  --secondary-container:   #2A413D;
+  --on-secondary-container:#CDE9E2;
+
+  --background:                #0E0F11;
+  --surface:                   #0E0F11;
+  --surface-container-lowest:  #08090A;
+  --surface-container-low:     #131518;
+  --surface-container:         #16181B;
+  --surface-container-high:    #202327;
+  --surface-container-highest: #2A2E33;
+  --surface-bright:            #34373C;
+  --surface-dim:               #0C0D0F;
+  --surface-variant:           #2C3137;
+
+  --on-surface:          #E6E8EC;
+  --on-surface-variant:  #9AA0A8;
+
+  --outline:          #8E9099;
+  --outline-variant:  #23272C;
+
+  --surface-tint:  #2DD4BF;
+
+  --connected-fill:    #14211F;
+  --connected-stroke:  #1E3A36;
+
+  --status-connected:     #4ADE80;
+  --status-connecting:    #FBBF24;
+  --status-disconnected:  #6B7178;
+  --error:                #F87171;
+  --error-container:      #93000A;
+  --on-error-container:   #FFDAD6;
+
+  --elevation-modal:  0 16px 48px rgba(0,0,0,0.55);
   }
 
   * {
@@ -62,121 +160,31 @@
   }
 
   body {
-    background: var(--bg-light) !important;
+    background: var(--background) !important;
     min-height: 100vh;
     transition: background-color 0.3s ease;
   }
 
-  .dark body {
-    background: var(--bg-dark) !important;
-  }
-
-  /* Subtle animated grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    opacity: 0.015;
-    pointer-events: none;
-    z-index: 9999;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  }
-
-  .dark body::before {
-    opacity: 0.03;
-  }
-
   /* ── Cards ─────────────────────────────────────────────────── */
 
-  .awg-card {
-    background: var(--surface-light);
-    border: 1px solid var(--surface-light-border);
-    border-radius: 16px;
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.04),
-      0 8px 24px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  }
+  .awg-card { background: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: var(--radius-card); box-shadow: none; overflow: hidden; }
 
-  .dark .awg-card {
-    background: var(--surface-dark-card);
-    border-color: var(--surface-dark-border);
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.2),
-      0 8px 32px rgba(0, 0, 0, 0.15);
-  }
-
-  /* ── Accent color overrides ────────────────────────────────── */
-
-  .bg-red-800 {
-    background-color: var(--accent) !important;
-  }
-  .hover\:bg-red-800:hover,
-  .hover\:bg-red-700:hover {
-    background-color: var(--accent-hover) !important;
-  }
-  .dark .dark\:bg-red-800 {
-    background-color: var(--accent) !important;
-  }
-  .dark .dark\:hover\:bg-red-800:hover {
-    background-color: var(--accent-hover) !important;
-  }
-  .hover\:border-red-800:hover {
-    border-color: var(--accent) !important;
-  }
-  .focus\:border-red-800:focus,
-  .dark .dark\:focus\:border-red-800:focus {
-    border-color: var(--accent) !important;
-  }
-  .text-red-800 {
-    color: var(--accent) !important;
-  }
-  .bg-red-100 {
-    background-color: rgba(20, 184, 166, 0.1) !important;
-  }
-  .dark .dark\:bg-red-100 {
-    background-color: rgba(20, 184, 166, 0.15) !important;
-  }
-  .text-red-600 {
-    color: var(--danger) !important;
-  }
-  .bg-red-600 {
-    background-color: var(--danger) !important;
-  }
-  .dark .dark\:bg-red-600 {
-    background-color: var(--danger) !important;
-  }
-  .hover\:bg-red-700:hover {
-    background-color: var(--accent-hover) !important;
-  }
-
-  /* Delete button keeps red */
-  .awg-btn-danger {
-    background-color: var(--danger) !important;
-  }
-  .awg-btn-danger:hover {
-    background-color: var(--danger-hover) !important;
-  }
+  /* Delete / danger button */
+  .awg-btn-danger { background-color: var(--error) !important; color: #fff !important; border-radius: var(--radius-input); }
+  .awg-btn-danger:hover { filter: brightness(0.96); }
 
   /* ── Online indicator ──────────────────────────────────────── */
 
-  .awg-online-ping {
-    background-color: rgba(52, 211, 153, 0.3) !important;
-  }
-
-  .awg-online-dot {
-    background-color: var(--online) !important;
-    box-shadow: 0 0 8px var(--online-glow);
-  }
+  .awg-online-dot { background-color: var(--status-connected) !important; box-shadow: none; }
+  .awg-offline-dot { background-color: var(--status-disconnected) !important; }
 
   /* ── Header ────────────────────────────────────────────────── */
 
   .awg-title {
     font-family: var(--font-sans) !important;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    font-size: 2rem;
+    font-size: var(--type-title);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
   }
 
   .awg-subtitle {
@@ -184,183 +192,107 @@
     font-size: 0.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--text-light-muted);
-    opacity: 0.7;
-  }
-
-  .dark .awg-subtitle {
-    color: var(--text-dark-muted);
+    color: var(--on-surface-variant);
   }
 
   /* ── Buttons ───────────────────────────────────────────────── */
 
-  .awg-btn {
-    border-radius: 10px;
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .awg-btn:active {
-    transform: scale(0.97);
-  }
-
-  .awg-btn-primary {
-    background-color: var(--accent) !important;
-    color: white !important;
-    border: none !important;
-    box-shadow: 0 2px 8px var(--accent-glow);
-  }
-
-  .awg-btn-primary:hover {
-    background-color: var(--accent-hover) !important;
-    box-shadow: 0 4px 16px var(--accent-glow);
-    transform: translateY(-1px);
-  }
-
-  .awg-btn-primary:active {
-    transform: translateY(0) scale(0.97);
-  }
+  .awg-btn { border-radius: var(--radius-input); font-weight: var(--weight-semibold); font-size: var(--type-button); transition: background-color .15s ease, transform .1s ease; }
+  .awg-btn:active { transform: scale(0.98); }
+  .awg-btn-primary { background-color: var(--primary) !important; color: var(--on-primary) !important; border: none !important; }
+  .awg-btn-primary:hover { filter: brightness(0.96); }
+  .awg-btn-primary.is-disabled, .awg-btn-primary:disabled { background-color: var(--surface-variant) !important; color: var(--on-surface-variant) !important; }
+  .awg-btn-tonal { background-color: var(--primary-container) !important; color: var(--on-primary-container) !important; border: none !important; border-radius: var(--radius-input); font-weight: var(--weight-semibold); }
+  .awg-btn-text { background: transparent !important; color: var(--on-surface-variant) !important; }
 
   /* Icon buttons */
-  .awg-icon-btn {
-    border-radius: 10px;
-    padding: 0.5rem;
-    transition: all 0.2s ease;
-    background: transparent;
-  }
-
-  .awg-icon-btn:hover {
-    background-color: var(--accent-subtle);
-    color: var(--accent-light);
-  }
-
-  .dark .awg-icon-btn:hover {
-    background-color: rgba(20, 184, 166, 0.12);
-    color: var(--accent-light);
-  }
+  .awg-icon-btn { border-radius: var(--radius-input); padding: .5rem; background: transparent; color: var(--on-surface-variant); transition: background-color .15s ease, color .15s ease; }
+  .awg-icon-btn:hover { background-color: var(--surface-container-highest); color: var(--on-surface); }
 
   /* ── Toggle switch ─────────────────────────────────────────── */
 
-  .awg-toggle-on {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;
-    box-shadow: 0 2px 8px var(--accent-glow);
-  }
-
-  .awg-toggle-off {
-    background: #cbd5e1 !important;
-  }
-
-  .dark .awg-toggle-off {
-    background: #334155 !important;
-  }
+  .awg-toggle-on { background: var(--primary) !important; }
+  .awg-toggle-off { background: var(--surface-variant) !important; }
 
   /* ── Client rows ───────────────────────────────────────────── */
 
-  .awg-client-row {
-    transition: background-color 0.15s ease;
-  }
-
-  .awg-client-row:hover {
-    background-color: rgba(0, 0, 0, 0.015);
-  }
-
-  .dark .awg-client-row:hover {
-    background-color: rgba(255, 255, 255, 0.02);
-  }
+  .awg-client-row { transition: background-color .15s ease; border-radius: var(--radius-list-row); }
+  .awg-client-row:hover { background-color: var(--surface-container-highest); }
+  .awg-client-connected { background: var(--connected-fill); border: 1.5px solid var(--connected-stroke); border-radius: var(--radius-list-row); }
+  .awg-stats-strip { display:flex; gap: var(--space-xl); border-top: 1px solid var(--outline-variant); margin-top: var(--space-md); padding-top: var(--space-md); }
+  .awg-stat-label { font-size: var(--type-stat-label); font-weight: var(--weight-semibold); letter-spacing: .05em; text-transform: uppercase; color: var(--on-surface-variant); }
+  .awg-stat-value { font-family: var(--font-mono); font-size: var(--type-mono); }
+  .awg-stat-value--rate { color: var(--primary); }
+  .awg-stat-value--meta { color: var(--on-surface); }
 
   /* ── Monospace data ────────────────────────────────────────── */
 
-  .awg-mono {
-    font-family: var(--font-mono) !important;
-    font-size: 0.75rem;
-    letter-spacing: -0.01em;
-  }
+  .awg-mono { font-family: var(--font-mono) !important; font-size: var(--type-mono); letter-spacing: -0.01em; }
 
   /* ── Avatar ────────────────────────────────────────────────── */
 
-  .awg-avatar {
-    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-    border-radius: 12px;
-  }
-
-  .dark .awg-avatar {
-    background: linear-gradient(135deg, #1e293b, #334155);
-  }
+  .awg-avatar { background: var(--surface-container-highest); border-radius: 12px; }
 
   /* ── Inputs ────────────────────────────────────────────────── */
 
-  input[type="text"],
-  input[type="password"] {
+  input[type="text"], input[type="password"] {
     font-family: var(--font-sans) !important;
-    border-radius: 10px !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    background: var(--surface-container) !important;
+    border: 1px solid var(--outline-variant) !important;
+    color: var(--on-surface) !important;
+    border-radius: var(--radius-input) !important;
+    transition: border-color .15s ease, box-shadow .15s ease !important;
   }
-
-  input[type="text"]:focus,
-  input[type="password"]:focus {
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary) !important;
+    outline: none !important;
   }
+  input.awg-invalid { border-color: var(--error) !important; }
+  input::placeholder { color: var(--on-surface-variant); opacity: 0.7; }
 
   /* ── Modals ────────────────────────────────────────────────── */
 
-  .awg-modal-overlay {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
+  .awg-modal-overlay { background: rgba(16,24,40,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+  .awg-modal { background: var(--surface-container-lowest) !important; border-radius: 18px !important; border: none !important; box-shadow: var(--elevation-modal) !important; }
+  .awg-modal-footer { background: var(--surface-container-low); border-top: 1px solid var(--outline-variant); }
 
-  .awg-modal {
-    border-radius: 20px !important;
-    border: 1px solid var(--surface-light-border);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15) !important;
-  }
+  /* ── Danger well ───────────────────────────────────────────── */
 
-  .dark .awg-modal {
-    border-color: var(--surface-dark-border);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
-  }
+  .awg-danger-well { background: var(--error-container); color: var(--on-error-container); border-radius: var(--radius-input); }
 
   /* ── Login page ────────────────────────────────────────────── */
 
   .awg-login-card {
-    border-radius: 20px !important;
-    border: 1px solid var(--surface-light-border);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08) !important;
-  }
-
-  .dark .awg-login-card {
-    border-color: var(--surface-dark-border);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4) !important;
+    border-radius: var(--radius-card) !important;
+    background: var(--surface-container) !important;
+    border: 1px solid var(--outline-variant) !important;
+    box-shadow: none !important;
   }
 
   .awg-login-avatar {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;
-    box-shadow: 0 4px 20px var(--accent-glow);
+    background: var(--primary) !important;
+    box-shadow: none;
   }
 
   /* ── Update banner ─────────────────────────────────────────── */
 
   .awg-update-banner {
-    background: linear-gradient(135deg, var(--accent), #0891b2) !important;
+    background: var(--primary-container) !important;
+    color: var(--on-primary-container) !important;
     border: none !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-card) !important;
   }
 
   .awg-update-btn {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    color: white !important;
-    border-radius: 10px !important;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s ease !important;
+    background: var(--primary) !important;
+    color: var(--on-primary) !important;
+    border: none !important;
+    border-radius: var(--radius-input) !important;
   }
 
   .awg-update-btn:hover {
-    background: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+    filter: brightness(0.96);
   }
 
   /* ── Scrollbar ─────────────────────────────────────────────── */
@@ -374,19 +306,13 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--surface-variant);
     border-radius: 3px;
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    background: #334155;
   }
 
   /* ── Loading spinner ───────────────────────────────────────── */
 
-  .awg-spinner {
-    color: var(--accent) !important;
-  }
+  .awg-spinner { color: var(--primary) !important; }
 
   /* ── Fade-in animation ─────────────────────────────────────── */
 
@@ -420,12 +346,19 @@
 
   /* ── QR Code modal ─────────────────────────────────────────── */
 
-  .awg-qr-card {
-    border-radius: 20px;
-    padding: 2rem;
-    background: white;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
-  }
+  .awg-qr-card { border-radius: 18px; padding: var(--space-xl); background: #fff; box-shadow: var(--elevation-modal); }
+
+  /* ── Read-only anatomy (badge / chip / field-row) ──────────── */
+
+  .awg-badge { display:inline-flex; align-items:center; background: var(--primary-container); color: var(--on-primary-container); font-size: 10px; font-weight: var(--weight-bold); letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: var(--radius-pill); }
+  .awg-chip { display:inline-flex; gap:6px; font-family: var(--font-mono); font-size:12px; background: var(--surface-container-highest); border: 1px solid var(--outline-variant); border-radius: var(--radius-pill); padding: 3px 10px; }
+  .awg-chip .k { color: var(--on-surface-variant); } .awg-chip .v { color: var(--on-surface); }
+  .awg-field-row { display:flex; flex-direction:column; gap:2px; padding: 9px 0; border-bottom: 1px solid var(--outline-variant); }
+  .awg-field-row:last-child { border-bottom: none; }
+  .awg-field-label { font-size: var(--type-field-label); color: var(--on-surface-variant); }
+  .awg-field-value { font-size: var(--type-field-value); font-weight: var(--weight-semibold); color: var(--on-surface); }
+  .awg-field-value.mono { font-family: var(--font-mono); }
+  .awg-section-label { font-size: var(--type-section); font-weight: var(--weight-bold); letter-spacing:.12em; text-transform:uppercase; color: var(--primary); padding-left: 4px; margin: 7px 0 4px; }
 
   /* ── Responsive tweaks ─────────────────────────────────────── */
 
@@ -438,65 +371,27 @@
   /* ── Dark mode card header border ──────────────────────────── */
 
   .awg-card-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  }
-
-  .dark .awg-card-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--outline-variant);
   }
 
   /* ── Header toolbar buttons ────────────────────────────────── */
 
-  .awg-toolbar-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.04);
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    color: #64748b;
-  }
-
-  .awg-toolbar-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
-    color: #1e293b;
-  }
-
-  .dark .awg-toolbar-btn {
-    background: rgba(255, 255, 255, 0.06);
-    color: #94a3b8;
-  }
-
-  .dark .awg-toolbar-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e2e8f0;
-  }
+  .awg-toolbar-btn { width:38px; height:38px; border-radius: var(--radius-pill); display:flex; align-items:center; justify-content:center; background: var(--surface-container-high); color: var(--on-surface-variant); border:none; cursor:pointer; transition: background-color .15s ease, color .15s ease; }
+  .awg-toolbar-btn:hover { background: var(--surface-container-highest); color: var(--on-surface); }
 
   /* ── Version badge ─────────────────────────────────────────── */
 
-  .awg-version {
-    font-family: var(--font-mono) !important;
-    font-size: 0.65rem;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: var(--accent-subtle);
-    color: var(--accent);
-    font-weight: 500;
-    letter-spacing: 0.02em;
-  }
+  .awg-version { font-family: var(--font-mono) !important; font-size: 11px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--primary-container); color: var(--on-primary-container); font-weight: var(--weight-semibold); }
 </style>
 
-<body class="bg-gray-50 dark:bg-neutral-800">
+<body>
   <div id="app">
     <div v-cloak class="container mx-auto max-w-3xl px-3 md:px-0 mt-4 xs:mt-6">
       <div v-if="authenticated === true">
         <div class="flex flex-col-reverse xxs:flex-row flex-auto items-center items-end gap-3 awg-fade-in">
           <h1 class="dark:text-neutral-200 flex-grow self-start mb-4 flex items-center gap-3">
-            <img src="./img/logo.svg" width="44" class="inline dark:bg" />
+            <img v-if="theme !== 'dark'" src="./img/signal-mark-light.svg" width="36" class="inline align-middle" />
+            <img v-else src="./img/signal-mark.svg" width="36" class="inline align-middle" />
             <div>
               <span class="awg-title">AmneziaWG</span>
               <div class="awg-subtitle">secure tunnel</div>
@@ -544,11 +439,11 @@
         </div>
         <div class="text-sm text-gray-400 dark:text-neutral-400 mb-5"></div>
         <div v-if="latestRelease"
-          class="awg-update-banner p-4 text-white text-sm font-small mb-10 rounded-md shadow-lg awg-fade-in"
+          class="awg-update-banner p-4 text-sm font-small mb-10 awg-fade-in"
           :title="`v${currentRelease} → v${latestRelease.version}`">
           <div class="container mx-auto flex flex-row flex-auto items-center">
             <div class="flex-grow">
-              <p class="font-bold">{{$t("updateAvailable")}}</p>
+              <p class="font-bold">{{$t("updateAvailable")}} <span class="awg-mono">v{{currentRelease}} → v{{latestRelease.version}}</span></p>
               <p style="opacity: 0.85">{{latestRelease.changelog}}</p>
             </div>
 
@@ -581,7 +476,8 @@
             <!-- Client -->
             <div v-if="clients && clients.length > 0" v-for="client in clients" :key="client.id"
               class="awg-client-row awg-fade-in relative overflow-hidden border-b last:border-b-0 border-gray-100 dark:border-neutral-600 border-solid"
-              style="border-color: var(--surface-light-border)">
+              :class="{ 'awg-client-connected': isConnected(client) }"
+              style="border-color: var(--outline-variant)">
 
               <!-- Chart -->
               <div v-if="uiChartType" class="absolute z-0 bottom-0 left-0 right-0 h-6" >
@@ -606,12 +502,11 @@
                     </svg>
                     <img v-if="client.avatar" :src="client.avatar" class="w-10 absolute top-0 left-0" style="border-radius: 12px" />
 
-                    <div
-                      v-if="client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
-                      <div
-                        class="animate-ping w-4 h-4 p-1 awg-online-ping rounded-full absolute -bottom-1 -right-1">
-                      </div>
+                    <div v-if="isConnected(client)">
                       <div class="w-2 h-2 awg-online-dot rounded-full absolute bottom-0 right-0"></div>
+                    </div>
+                    <div v-else>
+                      <div class="w-2 h-2 awg-offline-dot rounded-full absolute bottom-0 right-0"></div>
                     </div>
                   </div>
 
@@ -669,7 +564,7 @@
                           </span>
                         </span>
                         <!-- Inline Transfer TX -->
-                        <span v-if="!uiTrafficStats && client.transferTx" class="whitespace-nowrap" :title="$t('totalDownload') + bytes(client.transferTx)">
+                        <span v-if="!uiTrafficStats && !isConnected(client) && client.transferTx" class="whitespace-nowrap" :title="$t('totalDownload') + bytes(client.transferTx)">
                           ·
                           <svg class="align-middle h-3 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
@@ -680,7 +575,7 @@
                         </span>
 
                         <!-- Inline Transfer RX -->
-                        <span v-if="!uiTrafficStats && client.transferRx" class="whitespace-nowrap" :title="$t('totalUpload') + bytes(client.transferRx)">
+                        <span v-if="!uiTrafficStats && !isConnected(client) && client.transferRx" class="whitespace-nowrap" :title="$t('totalUpload') + bytes(client.transferRx)">
                           ·
                           <svg class="align-middle h-3 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
@@ -690,7 +585,7 @@
                           {{client.transferRxCurrent | bytes}}/s
                         </span>
                         <!-- Last seen -->
-                        <span class="text-gray-400 dark:text-neutral-500 whitespace-nowrap" v-if="client.latestHandshakeAt"
+                        <span class="text-gray-400 dark:text-neutral-500 whitespace-nowrap" v-if="client.latestHandshakeAt && (uiTrafficStats || !isConnected(client))"
                           :title="$t('lastSeen') + dateTime(new Date(client.latestHandshakeAt))">
                           {{!uiTrafficStats ? " · " : ""}}{{new Date(client.latestHandshakeAt) | timeago}}
                         </span>
@@ -788,7 +683,7 @@
 
                     <!-- Delete -->
                     <button
-                      class="awg-icon-btn align-middle text-gray-400 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition"
+                      class="awg-icon-btn align-middle transition"
                       :title="$t('deleteClient')" @click="clientDelete = client">
                       <svg class="w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
@@ -799,22 +694,30 @@
                   </div>
                 </div>
 
+                <!-- Stats strip — connected clients only -->
+                <div class="awg-stats-strip" v-if="!uiTrafficStats && isConnected(client)">
+                  <div>
+                    <div class="awg-stat-label">{{$t('totalDownload')}}</div>
+                    <div class="awg-stat-value awg-stat-value--rate">{{client.transferTx | bytes}}</div>
+                  </div>
+                  <div>
+                    <div class="awg-stat-label">{{$t('totalUpload')}}</div>
+                    <div class="awg-stat-value awg-stat-value--rate">{{client.transferRx | bytes}}</div>
+                  </div>
+                  <div>
+                    <div class="awg-stat-label">HANDSHAKE</div>
+                    <div class="awg-stat-value awg-stat-value--meta">{{new Date(client.latestHandshakeAt) | timeago}}</div>
+                  </div>
+                </div>
+
               </div>
 
             </div>
-            <div v-if="clients && clients.length === 0">
-              <p class="text-center m-10 text-gray-400 dark:text-neutral-400 text-sm">
-                {{$t("noClients")}}<br /><br />
-                <button @click="clientCreate = true; clientCreateName = '';"
-                  class="awg-btn awg-btn-primary py-2 px-4 inline-flex items-center">
-                  <svg class="w-4 mr-2" inline xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span class="text-sm">{{$t("newClient")}}</span>
-                </button>
-              </p>
+            <div v-if="clients && clients.length === 0" class="flex flex-col items-center justify-center text-center" style="padding: var(--space-xl) 0;">
+              <div style="background: var(--surface-container-highest); border-radius: var(--space-xl); padding: var(--space-xl);">
+                <img :src="theme !== 'dark' ? './img/signal-mark-light.svg' : './img/signal-mark.svg'" width="40" />
+              </div>
+              <p class="awg-subtitle" style="margin-top: var(--space-md);">{{$t('noClients') || 'No clients yet'}}</p>
             </div>
             <div v-if="clients === null" class="p-5">
               <svg class="w-5 animate-spin mx-auto awg-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
@@ -830,7 +733,7 @@
 
         <!-- QR Code-->
         <div v-if="qrcode">
-          <div class="awg-modal-overlay bg-black bg-opacity-50 fixed top-0 right-0 left-0 bottom-0 flex items-center justify-center z-20">
+          <div class="awg-modal-overlay fixed top-0 right-0 left-0 bottom-0 flex items-center justify-center z-20">
             <div class="awg-qr-card relative">
               <button @click="qrcode = null"
                 class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition">
@@ -847,18 +750,16 @@
         <!-- Create Dialog -->
         <div v-if="clientCreate" class="fixed z-10 inset-0 overflow-y-auto">
           <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true">
-              <div class="absolute inset-0 bg-gray-500 dark:bg-black opacity-75 dark:opacity-50"></div>
-            </div>
+            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true"></div>
 
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div
-              class="awg-modal inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
+              class="awg-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
               role="dialog" aria-modal="true" aria-labelledby="modal-headline">
-              <div class="bg-white dark:bg-neutral-700 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                   <div
-                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-800 sm:mx-0 sm:h-10 sm:w-10" style="border-radius: 14px">
+                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 sm:mx-0 sm:h-10 sm:w-10" style="background: var(--primary); border-radius: var(--radius-card)">
                     <svg class="h-6 w-6 text-white" inline xmlns="http://www.w3.org/2000/svg"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -872,24 +773,24 @@
                     <div class="mt-2">
                       <p class="text-sm text-gray-500">
                         <input
-                          class="rounded p-2 border-2 dark:bg-neutral-700 dark:text-neutral-200 border-gray-100 dark:border-neutral-600 focus:border-gray-200 focus:dark:border-neutral-500 dark:placeholder:text-neutral-400 outline-none w-full"
+                          class="rounded p-2 outline-none w-full"
                           type="text" v-model.trim="clientCreateName" :placeholder="$t('name')" />
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 dark:bg-neutral-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" style="border-top: 1px solid var(--surface-light-border)">
+              <div class="awg-modal-footer px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button v-if="clientCreateName.length" type="button" @click="createClient(); clientCreate = null"
-                  class="awg-btn awg-btn-primary w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm">
+                  class="awg-btn awg-btn-primary w-full inline-flex justify-center shadow-sm px-4 py-2 text-base sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("create")}}
                 </button>
                 <button v-else type="button"
-                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 dark:bg-neutral-400 text-base font-medium text-white dark:text-neutral-300 sm:ml-3 sm:w-auto sm:text-sm cursor-not-allowed" style="border-radius: 10px">
+                  class="awg-btn awg-btn-primary is-disabled w-full inline-flex justify-center shadow-sm px-4 py-2 text-base sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("create")}}
                 </button>
                 <button type="button" @click="clientCreate = null"
-                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px">
+                  class="awg-btn awg-btn-text mt-3 w-full inline-flex justify-center shadow-sm px-4 py-2 text-base sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("cancel")}}
                 </button>
               </div>
@@ -900,19 +801,17 @@
         <!-- Delete Dialog -->
         <div v-if="clientDelete" class="fixed z-10 inset-0 overflow-y-auto">
           <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true">
-              <div class="absolute inset-0 bg-gray-500 dark:bg-black opacity-75 dark:opacity-50"></div>
-            </div>
+            <div class="awg-modal-overlay fixed inset-0 transition-opacity" aria-hidden="true"></div>
 
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div
-              class="awg-modal inline-block align-bottom bg-white dark:bg-neutral-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
+              class="awg-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full"
               role="dialog" aria-modal="true" aria-labelledby="modal-headline">
-              <div class="bg-white dark:bg-neutral-700 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                   <div
-                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 sm:mx-0 sm:h-10 sm:w-10" style="border-radius: 14px; background: rgba(239, 68, 68, 0.1)">
-                    <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    class="awg-danger-well mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6" style="color: var(--on-error-container)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -924,19 +823,19 @@
                     </h3>
                     <div class="mt-2">
                       <p class="text-sm text-gray-500 dark:text-neutral-300">
-                        {{$t("deleteDialog1")}} <strong>{{clientDelete.name}}</strong>? {{$t("deleteDialog2")}}
+                        {{$t("deleteDialog1")}} <strong class="awg-mono">{{clientDelete.name}}</strong>? {{$t("deleteDialog2")}}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 dark:bg-neutral-600 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" style="border-top: 1px solid var(--surface-light-border)">
+              <div class="awg-modal-footer px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button type="button" @click="deleteClient(clientDelete); clientDelete = null"
-                  class="awg-btn awg-btn-danger w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 dark:bg-red-600 text-base font-medium text-white dark:text-white hover:bg-red-700 dark:hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px; background: var(--danger)">
+                  class="awg-btn awg-btn-danger w-full inline-flex justify-center shadow-sm px-4 py-2 text-base font-medium sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("deleteClient")}}
                 </button>
                 <button type="button" @click="clientDelete = null"
-                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-500 shadow-sm px-4 py-2 bg-white dark:bg-neutral-500 text-base font-medium text-gray-700 dark:text-neutral-50 hover:bg-gray-50 dark:hover:bg-neutral-600 dark:hover:border-neutral-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" style="border-radius: 10px">
+                  class="awg-btn awg-btn-text mt-3 w-full inline-flex justify-center shadow-sm px-4 py-2 text-base sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                   {{$t("cancel")}}
                 </button>
               </div>
@@ -947,12 +846,13 @@
 
       <div v-if="authenticated === false" class="awg-fade-in">
         <h1 class="text-4xl font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
-          <img src="./img/logo.svg" width="60" class="inline align-middle dark:bg" />
+          <img v-if="theme !== 'dark'" src="./img/signal-mark-light.svg" width="48" class="inline align-middle" />
+          <img v-else src="./img/signal-mark.svg" width="48" class="inline align-middle" />
           <span class="align-middle awg-title" style="font-size: inherit">AmneziaWG</span>
         </h1>
 
         <form @submit="login"
-          class="awg-login-card shadow bg-white dark:bg-neutral-700 mx-auto w-64 p-5 overflow-hidden mt-10">
+          class="awg-login-card mx-auto w-64 p-5 overflow-hidden mt-10">
           <!-- Avatar -->
           <div class="h-20 w-20 mb-10 mt-5 mx-auto rounded-full awg-login-avatar relative overflow-hidden">
             <svg class="w-10 h-10 m-5 text-white dark:text-white" xmlns="http://www.w3.org/2000/svg"
@@ -962,10 +862,10 @@
           </div>
 
           <input type="password" name="password" :placeholder="$t('password')" v-model="password"
-            class="px-3 py-2 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 w-full dark:placeholder:text-neutral-400 outline-none" style="border-radius: 10px" />
+            class="px-3 py-2 text-sm mb-5 w-full outline-none" />
 
           <button v-if="authenticating"
-            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px">
+            class="awg-btn awg-btn-primary w-full py-2 text-sm cursor-not-allowed is-disabled">
             <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               fill="currentColor">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -978,8 +878,8 @@
             class="awg-btn awg-btn-primary w-full py-2 text-sm text-white cursor-pointer font-medium"
             :value="$t('signIn')">
           <input v-if="!authenticating && !password" type="submit"
-            class="bg-gray-200 dark:bg-neutral-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px"
-            :value="$t('signIn')">
+            class="awg-btn awg-btn-primary w-full py-2 text-sm cursor-not-allowed is-disabled"
+            :value="$t('signIn')" disabled>
         </form>
       </div>
 
