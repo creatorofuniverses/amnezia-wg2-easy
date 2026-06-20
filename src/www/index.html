@@ -245,9 +245,9 @@
 
   .awg-title {
     font-family: var(--font-sans) !important;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    font-size: 2rem;
+    font-size: var(--type-title);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
   }
 
   .awg-subtitle {
@@ -255,12 +255,7 @@
     font-size: 0.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--text-light-muted);
-    opacity: 0.7;
-  }
-
-  .dark .awg-subtitle {
-    color: var(--text-dark-muted);
+    color: var(--on-surface-variant);
   }
 
   /* ── Buttons ───────────────────────────────────────────────── */
@@ -349,41 +344,35 @@
   /* ── Login page ────────────────────────────────────────────── */
 
   .awg-login-card {
-    border-radius: 20px !important;
-    border: 1px solid var(--surface-light-border);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08) !important;
-  }
-
-  .dark .awg-login-card {
-    border-color: var(--surface-dark-border);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4) !important;
+    border-radius: var(--radius-card) !important;
+    background: var(--surface-container) !important;
+    border: 1px solid var(--outline-variant) !important;
+    box-shadow: none !important;
   }
 
   .awg-login-avatar {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;
-    box-shadow: 0 4px 20px var(--accent-glow);
+    background: var(--primary) !important;
+    box-shadow: none;
   }
 
   /* ── Update banner ─────────────────────────────────────────── */
 
   .awg-update-banner {
-    background: linear-gradient(135deg, var(--accent), #0891b2) !important;
+    background: var(--primary-container) !important;
+    color: var(--on-primary-container) !important;
     border: none !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-card) !important;
   }
 
   .awg-update-btn {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    color: white !important;
-    border-radius: 10px !important;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s ease !important;
+    background: var(--primary) !important;
+    color: var(--on-primary) !important;
+    border: none !important;
+    border-radius: var(--radius-input) !important;
   }
 
   .awg-update-btn:hover {
-    background: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+    filter: brightness(0.96);
   }
 
   /* ── Scrollbar ─────────────────────────────────────────────── */
@@ -455,11 +444,7 @@
   /* ── Dark mode card header border ──────────────────────────── */
 
   .awg-card-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  }
-
-  .dark .awg-card-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--outline-variant);
   }
 
   /* ── Header toolbar buttons ────────────────────────────────── */
@@ -478,7 +463,8 @@
       <div v-if="authenticated === true">
         <div class="flex flex-col-reverse xxs:flex-row flex-auto items-center items-end gap-3 awg-fade-in">
           <h1 class="dark:text-neutral-200 flex-grow self-start mb-4 flex items-center gap-3">
-            <img src="./img/logo.svg" width="44" class="inline dark:bg" />
+            <img v-if="theme !== 'dark'" src="./img/signal-mark.svg" width="36" class="inline align-middle" />
+            <img v-else src="./img/signal-mark-light.svg" width="36" class="inline align-middle" />
             <div>
               <span class="awg-title">AmneziaWG</span>
               <div class="awg-subtitle">secure tunnel</div>
@@ -526,11 +512,11 @@
         </div>
         <div class="text-sm text-gray-400 dark:text-neutral-400 mb-5"></div>
         <div v-if="latestRelease"
-          class="awg-update-banner p-4 text-white text-sm font-small mb-10 rounded-md shadow-lg awg-fade-in"
+          class="awg-update-banner p-4 text-sm font-small mb-10 awg-fade-in"
           :title="`v${currentRelease} → v${latestRelease.version}`">
           <div class="container mx-auto flex flex-row flex-auto items-center">
             <div class="flex-grow">
-              <p class="font-bold">{{$t("updateAvailable")}}</p>
+              <p class="font-bold">{{$t("updateAvailable")}} <span class="awg-mono">v{{currentRelease}} → v{{latestRelease.version}}</span></p>
               <p style="opacity: 0.85">{{latestRelease.changelog}}</p>
             </div>
 
@@ -929,12 +915,13 @@
 
       <div v-if="authenticated === false" class="awg-fade-in">
         <h1 class="text-4xl font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
-          <img src="./img/logo.svg" width="60" class="inline align-middle dark:bg" />
+          <img v-if="theme !== 'dark'" src="./img/signal-mark.svg" width="48" class="inline align-middle" />
+          <img v-else src="./img/signal-mark-light.svg" width="48" class="inline align-middle" />
           <span class="align-middle awg-title" style="font-size: inherit">AmneziaWG</span>
         </h1>
 
         <form @submit="login"
-          class="awg-login-card shadow bg-white dark:bg-neutral-700 mx-auto w-64 p-5 overflow-hidden mt-10">
+          class="awg-login-card mx-auto w-64 p-5 overflow-hidden mt-10">
           <!-- Avatar -->
           <div class="h-20 w-20 mb-10 mt-5 mx-auto rounded-full awg-login-avatar relative overflow-hidden">
             <svg class="w-10 h-10 m-5 text-white dark:text-white" xmlns="http://www.w3.org/2000/svg"
@@ -944,10 +931,10 @@
           </div>
 
           <input type="password" name="password" :placeholder="$t('password')" v-model="password"
-            class="px-3 py-2 text-sm dark:bg-neutral-700 text-gray-500 dark:text-gray-500 mb-5 border-2 border-gray-100 dark:border-neutral-800 w-full dark:placeholder:text-neutral-400 outline-none" style="border-radius: 10px" />
+            class="px-3 py-2 text-sm mb-5 w-full outline-none" />
 
           <button v-if="authenticating"
-            class="bg-red-800 dark:bg-red-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px">
+            class="awg-btn awg-btn-primary w-full py-2 text-sm cursor-not-allowed is-disabled">
             <svg class="w-5 animate-spin mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               fill="currentColor">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -960,8 +947,8 @@
             class="awg-btn awg-btn-primary w-full py-2 text-sm text-white cursor-pointer font-medium"
             :value="$t('signIn')">
           <input v-if="!authenticating && !password" type="submit"
-            class="bg-gray-200 dark:bg-neutral-800 w-full rounded shadow py-2 text-sm text-white dark:text-white cursor-not-allowed" style="border-radius: 10px"
-            :value="$t('signIn')">
+            class="awg-btn awg-btn-primary w-full py-2 text-sm cursor-not-allowed is-disabled"
+            :value="$t('signIn')" disabled>
         </form>
       </div>
 
