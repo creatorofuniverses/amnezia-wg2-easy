@@ -10,47 +10,166 @@
   <link rel="apple-touch-icon" href="./img/apple-touch-icon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <style>
+  @font-face { font-family: "Manrope"; font-weight: 400; font-display: swap; src: url("./fonts/Manrope-Regular.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 500; font-display: swap; src: url("./fonts/Manrope-Medium.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 600; font-display: swap; src: url("./fonts/Manrope-SemiBold.ttf") format("truetype"); }
+  @font-face { font-family: "Manrope"; font-weight: 700; font-display: swap; src: url("./fonts/Manrope-Bold.ttf") format("truetype"); }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("./fonts/JetBrainsMono-Regular.ttf") format("truetype"); }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url("./fonts/JetBrainsMono-Medium.ttf") format("truetype"); }
+
   [v-cloak] {
     display: none;
   }
 
-  /* ── Stealth Console Theme ────────────────────────────────── */
+  /* ── Network Teal / Material 3 Design Tokens ─────────────── */
 
   :root {
-    --accent: #0d9488;
-    --accent-hover: #0f766e;
-    --accent-light: #14b8a6;
-    --accent-glow: rgba(20, 184, 166, 0.25);
-    --accent-subtle: rgba(20, 184, 166, 0.08);
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --online: #34d399;
-    --online-glow: rgba(52, 211, 153, 0.4);
-    --surface-light: #ffffff;
-    --surface-light-hover: #f8fafc;
-    --surface-light-border: rgba(0, 0, 0, 0.06);
-    --bg-light: #f1f5f9;
-    --text-light: #1e293b;
-    --text-light-secondary: #64748b;
-    --text-light-muted: #94a3b8;
-    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  /* ---- Primary ---- */
+  --primary:               #0D9488;
+  --on-primary:            #FFFFFF;
+  --primary-container:     #CCFBF1;
+  --on-primary-container:  #00201B;
+
+  /* ---- Secondary (selection / tonal) ---- */
+  --secondary-container:   #CCE8E1;
+  --on-secondary-container:#06201B;
+
+  /* ---- Surfaces (M3 container ladder) ---- */
+  --background:                #F4F6F8;
+  --surface:                   #F4F6F8;
+  --surface-container-lowest:  #FFFFFF;
+  --surface-container-low:     #FAFBFC;
+  --surface-container:         #FFFFFF;
+  --surface-container-high:    #F6F8FA;
+  --surface-container-highest: #F1F3F6;
+  --surface-bright:            #FFFFFF;
+  --surface-dim:               #D8DCE1;
+  --surface-variant:           #DCE0E6;
+
+  /* ---- Text on surface ---- */
+  --on-surface:          #16181B;
+  --on-surface-variant:  #5B6066;
+
+  /* ---- Lines ---- */
+  --outline:          #74777F;
+  --outline-variant:  #E2E5EA;
+
+  /* ---- Elevated-surface tint ---- */
+  --surface-tint:  #0D9488;
+
+  /* ---- Connected / active client row ---- */
+  --connected-fill:    #ECFDF8;
+  --connected-stroke:  #99E6D8;
+
+  /* ---- Status (meaning constant across themes) ---- */
+  --status-connected:     #16A34A;
+  --status-connecting:    #B45309;
+  --status-disconnected:  #8A9099;
+  --error:                #BA1A1A;
+  --error-container:      #FFDAD6;
+  --on-error-container:   #410002;
+
+  /* ---- Type ---- */
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* role sizes */
+  --type-title:        22px;  /* screen / toolbar title — SemiBold */
+  --type-client-name:  16px;  /* client name — SemiBold */
+  --type-section:      11px;  /* INTERFACE / OBFUSCATION / PEER — SemiBold caps, ls .12em */
+  --type-field-value:  15px;  /* field value — Medium */
+  --type-field-label:  12px;  /* field label — Regular */
+  --type-status:       14px;  /* status — SemiBold */
+  --type-stat-label:   11px;  /* DOWNLOAD / UPLOAD — SemiBold caps, ls .05em */
+  --type-mono:         13px;  /* stat values, keys, IPs */
+  --type-button:       14px;  /* button — SemiBold */
+
+  /* ---- Shape ---- */
+  --radius-input:     12px;
+  --radius-card:      16px;
+  --radius-list-row:  18px;
+  --radius-pill:      999px;
+
+  /* ---- Spacing (4px grid) ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --card-padding: 16px;
+  --card-gap: 12px;
+
+  /* ---- Elevation (tonal-first; cards flat) ---- */
+  --elevation-card:   none;
+  --elevation-modal:  0 12px 40px rgba(16,24,40,0.16);
   }
 
   .dark {
-    --surface-dark: #0f172a;
-    --surface-dark-card: #1e293b;
-    --surface-dark-card-hover: #263349;
-    --surface-dark-border: rgba(255, 255, 255, 0.06);
-    --bg-dark: #020617;
-    --text-dark: #e2e8f0;
-    --text-dark-secondary: #94a3b8;
-    --text-dark-muted: #475569;
+  --primary:               #2DD4BF;
+  --on-primary:            #06231F;
+  --primary-container:     #0F3D38;
+  --on-primary-container:  #5EEAD4;
+
+  --secondary-container:   #2A413D;
+  --on-secondary-container:#CDE9E2;
+
+  --background:                #0E0F11;
+  --surface:                   #0E0F11;
+  --surface-container-lowest:  #08090A;
+  --surface-container-low:     #131518;
+  --surface-container:         #16181B;
+  --surface-container-high:    #202327;
+  --surface-container-highest: #2A2E33;
+  --surface-bright:            #34373C;
+  --surface-dim:               #0C0D0F;
+  --surface-variant:           #2C3137;
+
+  --on-surface:          #E6E8EC;
+  --on-surface-variant:  #9AA0A8;
+
+  --outline:          #8E9099;
+  --outline-variant:  #23272C;
+
+  --surface-tint:  #2DD4BF;
+
+  --connected-fill:    #14211F;
+  --connected-stroke:  #1E3A36;
+
+  --status-connected:     #4ADE80;
+  --status-connecting:    #FBBF24;
+  --status-disconnected:  #6B7178;
+  --error:                #F87171;
+  --error-container:      #93000A;
+  --on-error-container:   #FFDAD6;
+
+  --elevation-modal:  0 16px 48px rgba(0,0,0,0.55);
+  }
+
+  /* TEMP shim — lets unmigrated awg-* classes resolve until Task 6 removes them */
+  :root, .dark {
+    --accent: var(--primary);
+    --accent-hover: var(--primary);
+    --accent-light: var(--primary);
+    --accent-glow: transparent;
+    --accent-subtle: var(--surface-container-highest);
+    --online: var(--status-connected);
+    --online-glow: transparent;
+    --danger: var(--error);
+    --danger-hover: var(--error);
+    --bg-light: var(--background);
+    --bg-dark: var(--background);
+    --surface-light: var(--surface-container);
+    --surface-light-border: var(--outline-variant);
+    --surface-dark-card: var(--surface-container);
+    --surface-dark-border: var(--outline-variant);
+    --text-light-muted: var(--on-surface-variant);
+    --text-dark-muted: var(--on-surface-variant);
   }
 
   * {
@@ -107,56 +226,12 @@
       0 8px 32px rgba(0, 0, 0, 0.15);
   }
 
-  /* ── Accent color overrides ────────────────────────────────── */
-
-  .bg-red-800 {
-    background-color: var(--accent) !important;
-  }
-  .hover\:bg-red-800:hover,
-  .hover\:bg-red-700:hover {
-    background-color: var(--accent-hover) !important;
-  }
-  .dark .dark\:bg-red-800 {
-    background-color: var(--accent) !important;
-  }
-  .dark .dark\:hover\:bg-red-800:hover {
-    background-color: var(--accent-hover) !important;
-  }
-  .hover\:border-red-800:hover {
-    border-color: var(--accent) !important;
-  }
-  .focus\:border-red-800:focus,
-  .dark .dark\:focus\:border-red-800:focus {
-    border-color: var(--accent) !important;
-  }
-  .text-red-800 {
-    color: var(--accent) !important;
-  }
-  .bg-red-100 {
-    background-color: rgba(20, 184, 166, 0.1) !important;
-  }
-  .dark .dark\:bg-red-100 {
-    background-color: rgba(20, 184, 166, 0.15) !important;
-  }
-  .text-red-600 {
-    color: var(--danger) !important;
-  }
-  .bg-red-600 {
-    background-color: var(--danger) !important;
-  }
-  .dark .dark\:bg-red-600 {
-    background-color: var(--danger) !important;
-  }
-  .hover\:bg-red-700:hover {
-    background-color: var(--accent-hover) !important;
-  }
-
-  /* Delete button keeps red */
+  /* Delete / danger button */
   .awg-btn-danger {
-    background-color: var(--danger) !important;
+    background-color: var(--error) !important;
   }
   .awg-btn-danger:hover {
-    background-color: var(--danger-hover) !important;
+    background-color: var(--error) !important;
   }
 
   /* ── Online indicator ──────────────────────────────────────── */
