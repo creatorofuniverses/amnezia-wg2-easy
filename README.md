@@ -56,7 +56,27 @@ echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
 echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
 ```
 
-### 3. Run AmneziaWG Easy
+### 3. Run AmneziaWG Easy (Docker Compose — recommended)
+
+Docker Compose is the **preferred** way to run AmneziaWG Easy. All ports, caps, volumes and environment variables live in one version-controlled file, so upgrades and restarts are reproducible — you never have to remember a long `docker run` invocation or worry about a forgotten flag.
+
+Copy [`docker-compose.yml`](docker-compose.yml), set `WG_HOST` and `PASSWORD`, then:
+
+```bash
+docker compose up --detach
+```
+
+For local development, build the image from source:
+
+```bash
+docker compose up --detach --build
+```
+
+All environment variables are documented as comments inside the compose file. The Web UI will then be available on `http://0.0.0.0:51821`, and your configuration is persisted in the volume defined by the compose file.
+
+### 4. Alternative: `docker run` one-liner
+
+If you'd rather not use Compose, the same container can be launched directly. Note this is harder to maintain — every port, cap and env var has to be re-specified by hand on each run, and it's easy to forget one:
 
 ```
   docker run -d \
@@ -79,25 +99,7 @@ echo 'net.ipv4.conf.all.src_valid_mark=1' | sudo tee -a /etc/sysctl.conf
 >
 > Replace `YOUR_ADMIN_PASSWORD` with a password to log in on the Web UI.
 
-The Web UI will now be available on `http://0.0.0.0:51821`.
-
-> Your configuration files will be saved in `~/.amnezia-wg-easy`
-
-### 4. Or use Docker Compose
-
-Copy [`docker-compose.yml`](docker-compose.yml), set `WG_HOST` and `PASSWORD`, then:
-
-```bash
-docker compose up --detach
-```
-
-For local development, build the image from source:
-
-```bash
-docker compose up --detach --build
-```
-
-All environment variables are documented as comments inside the compose file.
+The Web UI will now be available on `http://0.0.0.0:51821`. Your configuration files will be saved in `~/.amnezia-wg-easy`.
 
 ## Options
 
@@ -314,7 +316,13 @@ the `docker run` command above). The host needs the `nfnetlink_queue` and
 
 ## Updating
 
-To update to the latest version, simply run:
+With Docker Compose (recommended) AmneziaWG Easy can be updated with a single command:
+
+```bash
+docker compose up --detach --pull always
+```
+
+If you launched it with the `docker run` one-liner instead, update manually:
 
 ```bash
 docker stop amnezia-wg-easy
@@ -323,9 +331,6 @@ docker pull ghcr.io/creatorofuniverses/amnezia-wg-easy
 ```
 
 And then run the `docker run -d \ ...` command above again.
-
-With Docker Compose AmneziaWG Easy can be updated with a single command:
-`docker compose up --detach --pull always`
 
 ### Upgrading from AWG 1.x (spcfox/amnezia-wg-easy)
 
