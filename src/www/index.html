@@ -390,8 +390,8 @@
       <div v-if="authenticated === true">
         <div class="flex flex-col-reverse xxs:flex-row flex-auto items-center items-end gap-3 awg-fade-in">
           <h1 class="dark:text-neutral-200 flex-grow self-start mb-4 flex items-center gap-3">
-            <img v-if="theme !== 'dark'" src="./img/signal-mark.svg" width="36" class="inline align-middle" />
-            <img v-else src="./img/signal-mark-light.svg" width="36" class="inline align-middle" />
+            <img v-if="theme !== 'dark'" src="./img/signal-mark-light.svg" width="36" class="inline align-middle" />
+            <img v-else src="./img/signal-mark.svg" width="36" class="inline align-middle" />
             <div>
               <span class="awg-title">AmneziaWG</span>
               <div class="awg-subtitle">secure tunnel</div>
@@ -715,7 +715,7 @@
             </div>
             <div v-if="clients && clients.length === 0" class="flex flex-col items-center justify-center text-center" style="padding: var(--space-xl) 0;">
               <div style="background: var(--surface-container-highest); border-radius: var(--space-xl); padding: var(--space-xl);">
-                <img :src="theme !== 'dark' ? './img/signal-mark.svg' : './img/signal-mark-light.svg'" width="40" />
+                <img :src="theme !== 'dark' ? './img/signal-mark-light.svg' : './img/signal-mark.svg'" width="40" />
               </div>
               <p class="awg-subtitle" style="margin-top: var(--space-md);">{{$t('noClients') || 'No clients yet'}}</p>
             </div>
@@ -846,8 +846,8 @@
 
       <div v-if="authenticated === false" class="awg-fade-in">
         <h1 class="text-4xl font-medium my-16 text-gray-700 dark:text-neutral-200 text-center">
-          <img v-if="theme !== 'dark'" src="./img/signal-mark.svg" width="48" class="inline align-middle" />
-          <img v-else src="./img/signal-mark-light.svg" width="48" class="inline align-middle" />
+          <img v-if="theme !== 'dark'" src="./img/signal-mark-light.svg" width="48" class="inline align-middle" />
+          <img v-else src="./img/signal-mark.svg" width="48" class="inline align-middle" />
           <span class="align-middle awg-title" style="font-size: inherit">AmneziaWG</span>
         </h1>
 
