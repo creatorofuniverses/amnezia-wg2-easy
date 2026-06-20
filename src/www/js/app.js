@@ -66,6 +66,7 @@ new Vue({
     clientEditAddress: null,
     clientEditAddressId: null,
     qrcode: null,
+    copiedClientId: null,
 
     currentRelease: null,
     latestRelease: null,
@@ -278,6 +279,42 @@ new Vue({
       this.api.createClient({ name })
         .catch((err) => alert(err.message || err.toString()))
         .finally(() => this.refresh().catch(console.error));
+    },
+    copyShareLink(client) {
+      this.api.getClientShareString({ clientId: client.id })
+        .then((link) => this.copyToClipboard(link))
+        .then(() => {
+          this.copiedClientId = client.id;
+          setTimeout(() => {
+            if (this.copiedClientId === client.id) this.copiedClientId = null;
+          }, 1500);
+        })
+        .catch((err) => alert(err.message || err.toString()));
+    },
+    async copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      // Fallback for non-secure contexts (wg-easy is often served over plain HTTP).
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } finally {
+        document.body.removeChild(ta);
+      }
+      if (!ok) {
+        // Last resort: show the string so the user can copy it manually.
+        window.prompt('Copy this share link:', text);
+      }
     },
     deleteClient(client) {
       this.api.deleteClient({ clientId: client.id })

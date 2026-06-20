@@ -145,4 +145,18 @@ class API {
     });
   }
 
+  async getClientShareString({ clientId }) {
+    const res = await fetch(`./api/wireguard/client/${clientId}/share-string`);
+    if (!res.ok) {
+      let message = res.statusText;
+      try {
+        message = (await res.json()).error || message;
+      } catch (e) {
+        // body is not JSON
+      }
+      throw new Error(message);
+    }
+    return res.text();
+  }
+
 }
