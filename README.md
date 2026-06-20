@@ -223,7 +223,7 @@ the responder consume.
 
 ## Native Traffic Imitation
 
-The image runs native AmneziaWG via `awg-quick`. It uses the **host kernel module** if installed (DKMS), otherwise falls back automatically to the bundled `amneziawg-go` userspace fork — the same single image handles both datapaths.
+The image runs native AmneziaWG via `awg-quick`. It uses the **host kernel module** if installed (DKMS), otherwise falls back automatically to the bundled `amneziawg-go-proxy` userspace fork — the same single image handles both datapaths. For full `IMITATE_PROTOCOL` masking the kernel module must be the [proxy fork](#host-kernel-module-recommended-datapath); the userspace fallback always supports it. See [Host kernel module](#host-kernel-module-recommended-datapath) below.
 
 Set `IMITATE_PROTOCOL` to shape the obfuscation padding and junk to resemble a real protocol. The setting applies to **both** the server interface and every generated client config:
 
@@ -244,13 +244,20 @@ just up                  # builds from source and starts the container
 
 ### Host kernel module (recommended datapath)
 
-Installing the AmneziaWG DKMS module on the host gives the best performance and compatibility:
+For best performance, install an AmneziaWG kernel module on the host (DKMS). Two options:
+
+- **Recommended — the proxy fork: [`creatorofuniverses/amneziawg-proxy-linux-kernel-module`](https://github.com/creatorofuniverses/amneziawg-proxy-linux-kernel-module).** This fork adds the `ImitateProtocol` masking support (the `imitate.c` traffic-shaping that `IMITATE_PROTOCOL` drives). With it, the `IMITATE_PROTOCOL` shaping runs in-kernel at full speed.
+- **Stock upstream module** (e.g. distro `amneziawg-dkms`, or [`amnezia-vpn/amneziawg-linux-kernel-module`](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module)). This works, but it does **not** understand `ImitateProtocol` and silently ignores it — so server→client protocol masking is weaker (you keep S1-S4 / H1-H4 / I1-I5, but lose the QUIC/DNS/STUN/SIP imitation shaping).
 
 ```bash
 # Example for Debian/Ubuntu (adjust for your distro)
 sudo apt install dkms
-# install amneziawg-dkms from your distro's repo or build from source
+# build the proxy fork from source (recommended), or install amneziawg-dkms from your distro
+git clone https://github.com/creatorofuniverses/amneziawg-proxy-linux-kernel-module
+# follow the fork's README to build + dkms install
 ```
+
+> If you'd rather not touch the host kernel, skip this entirely: the image automatically falls back to the bundled **`amneziawg-go-proxy`** userspace fork, which **always** has full `ImitateProtocol` masking (at a CPU cost vs. the kernel module). The masking-capable datapaths are therefore the **proxy kernel module** *or* the **userspace fork** — the stock kernel module is the only option that drops imitation shaping.
 
 The container requires `CAP_NET_ADMIN` and the `/dev/net/tun` device. **`SYS_MODULE` is no longer needed** — kernel-module loading is handled by the host via DKMS, not inside the container.
 
