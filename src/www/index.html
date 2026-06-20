@@ -476,7 +476,7 @@
             <!-- Client -->
             <div v-if="clients && clients.length > 0" v-for="client in clients" :key="client.id"
               class="awg-client-row awg-fade-in relative overflow-hidden border-b last:border-b-0 border-gray-100 dark:border-neutral-600 border-solid"
-              :class="{ 'awg-client-connected': client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10)) }"
+              :class="{ 'awg-client-connected': isConnected(client) }"
               style="border-color: var(--outline-variant)">
 
               <!-- Chart -->
@@ -502,7 +502,7 @@
                     </svg>
                     <img v-if="client.avatar" :src="client.avatar" class="w-10 absolute top-0 left-0" style="border-radius: 12px" />
 
-                    <div v-if="client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
+                    <div v-if="isConnected(client)">
                       <div class="w-2 h-2 awg-online-dot rounded-full absolute bottom-0 right-0"></div>
                     </div>
                     <div v-else>
@@ -564,7 +564,7 @@
                           </span>
                         </span>
                         <!-- Inline Transfer TX -->
-                        <span v-if="!uiTrafficStats && client.transferTx" class="whitespace-nowrap" :title="$t('totalDownload') + bytes(client.transferTx)">
+                        <span v-if="!uiTrafficStats && !isConnected(client) && client.transferTx" class="whitespace-nowrap" :title="$t('totalDownload') + bytes(client.transferTx)">
                           ·
                           <svg class="align-middle h-3 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
@@ -575,7 +575,7 @@
                         </span>
 
                         <!-- Inline Transfer RX -->
-                        <span v-if="!uiTrafficStats && client.transferRx" class="whitespace-nowrap" :title="$t('totalUpload') + bytes(client.transferRx)">
+                        <span v-if="!uiTrafficStats && !isConnected(client) && client.transferRx" class="whitespace-nowrap" :title="$t('totalUpload') + bytes(client.transferRx)">
                           ·
                           <svg class="align-middle h-3 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
@@ -585,7 +585,7 @@
                           {{client.transferRxCurrent | bytes}}/s
                         </span>
                         <!-- Last seen -->
-                        <span class="text-gray-400 dark:text-neutral-500 whitespace-nowrap" v-if="client.latestHandshakeAt"
+                        <span class="text-gray-400 dark:text-neutral-500 whitespace-nowrap" v-if="client.latestHandshakeAt && (uiTrafficStats || !isConnected(client))"
                           :title="$t('lastSeen') + dateTime(new Date(client.latestHandshakeAt))">
                           {{!uiTrafficStats ? " · " : ""}}{{new Date(client.latestHandshakeAt) | timeago}}
                         </span>
@@ -695,7 +695,7 @@
                 </div>
 
                 <!-- Stats strip — connected clients only -->
-                <div class="awg-stats-strip" v-if="!uiTrafficStats && client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt) < 1000 * 60 * 10))">
+                <div class="awg-stats-strip" v-if="!uiTrafficStats && isConnected(client)">
                   <div>
                     <div class="awg-stat-label">{{$t('totalDownload')}}</div>
                     <div class="awg-stat-value awg-stat-value--rate">{{client.transferTx | bytes}}</div>

@@ -159,6 +159,9 @@ new Vue({
     },
   },
   methods: {
+    isConnected(client) {
+      return client.latestHandshakeAt && ((new Date() - new Date(client.latestHandshakeAt)) < 1000 * 60 * 10);
+    },
     dateTime: (value) => {
       return new Intl.DateTimeFormat(undefined, {
         year: 'numeric',
