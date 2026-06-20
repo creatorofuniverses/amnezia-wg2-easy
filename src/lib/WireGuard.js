@@ -8,6 +8,7 @@ const QRCode = require('qrcode');
 
 const Util = require('./Util');
 const ServerError = require('./ServerError');
+const ShareString = require('./awgShareString');
 
 const {
   WG_PATH,
@@ -277,6 +278,13 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
 }AllowedIPs = ${WG_ALLOWED_IPS}
 PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}
 Endpoint = ${WG_HOST}:${WG_PORT}`;
+  }
+
+  async getClientShareString({ clientId }) {
+    const client = await this.getClient({ clientId });
+    const config = await this.getClientConfiguration({ clientId });
+    const name = String(client.name || '').replace(/[\r\n]+/g, ' ').trim();
+    return ShareString.encode(`# Name = ${name}\n${config}`);
   }
 
   async getClientQRCodeSVG({ clientId }) {
