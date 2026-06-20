@@ -236,10 +236,12 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
 
   async getClient({ clientId }) {
     const config = await this.getConfig();
-    const client = config.clients[clientId];
-    if (!client) {
+    // Own-property check: reject inherited keys (`__proto__`, `constructor`, …)
+    // so they 404 like any unknown id instead of resolving to a prototype object.
+    if (!Object.prototype.hasOwnProperty.call(config.clients, clientId)) {
       throw new ServerError(`Client Not Found: ${clientId}`, 404);
     }
+    const client = config.clients[clientId];
 
     return client;
   }
