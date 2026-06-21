@@ -25,7 +25,7 @@ npm run start                    # docker run with required caps (NET_ADMIN)
 docker compose up --detach       # or use docker-compose.yml (set WG_HOST and PASSWORD first)
 ```
 
-The Node app has no test suite — quality relies on ESLint and manual testing. The Go probe-responder (`responder/`) **does** have unit tests; build & test it directly:
+The Node app has focused `node:test` unit suites in `src/lib/__tests__/` (run `cd src && node --test`); the shell/`wg-quick` integration side is verified manually. The Go probe-responder (`responder/`) **does** have unit tests; build & test it directly:
 
 ```bash
 cd responder && go build ./... && go test ./...   # Go 1.25; deps: quic-go, go-nfqueue/v2

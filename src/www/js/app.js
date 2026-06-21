@@ -25,6 +25,57 @@ function bytes(bytes, decimals, kib, maxunit) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
+function svIsIPv4(s) {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(s).trim());
+  return !!m && m.slice(1).every((o) => Number(o) >= 0 && Number(o) <= 255);
+}
+function svIsIPv6(s) {
+  const t = String(s).trim();
+  return /^[0-9a-fA-F:]+$/.test(t) && t.includes(':') && !/:::/.test(t) && (t.match(/:/g) || []).length <= 7;
+}
+function svIsIP(s) {
+  return svIsIPv4(s) || svIsIPv6(s);
+}
+function svIsCIDR(s) {
+  const parts = String(s).trim().split('/');
+  if (parts.length !== 2) return false;
+  const p = Number(parts[1]);
+  if (!Number.isInteger(p) || p < 0) return false;
+  if (svIsIPv4(parts[0])) return p <= 32;
+  if (svIsIPv6(parts[0])) return p <= 128;
+  return false;
+}
+function svInt(v, lo, hi) {
+  if (String(v).trim() === '') return false;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= lo && n <= hi;
+}
+// Mirrors src/lib/serverSettings.js for instant inline UX; the backend stays authoritative.
+function validateServerDraft(d) {
+  const e = {};
+  if (!d.host || String(d.host).trim() === '') e.host = 'Required';
+  if (!svInt(d.port, 1, 65535)) e.port = 'Port 1–65535';
+  if (!(d.mtu === null || d.mtu === '' || svInt(d.mtu, 576, 1500))) e.mtu = 'MTU 576–1500 or empty';
+  if (!String(d.dns).split(',').every((x) => svIsIP(x.trim()))) e.dns = 'Comma-separated IPs';
+  if (!String(d.allowedIPs).split(',').every((x) => svIsCIDR(x.trim()))) e.allowedIPs = 'Comma-separated CIDRs';
+  if (!/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.x$/.test(String(d.defaultAddress))) {
+    e.defaultAddress = 'Use a template like 10.8.0.x';
+  }
+  if (!svInt(d.persistentKeepalive, 0, 65535)) e.persistentKeepalive = 'Keepalive 0–65535';
+  if (!svInt(d.jc, 1, 128)) e.jc = 'Jc 1–128';
+  ['jmin', 'jmax', 's1', 's2', 's3', 's4'].forEach((k) => {
+    if (!svInt(d[k], 0, 1280)) e[k] = `${k} 0–1280`;
+  });
+  if (!e.jmin && !e.jmax && Number(d.jmin) > Number(d.jmax)) e.jmax = 'Jmax ≥ Jmin';
+  ['h1', 'h2', 'h3', 'h4'].forEach((k) => {
+    const h = d[k];
+    if (!h || typeof h !== 'object' || !svInt(h.min, 5, 2147483647) || !svInt(h.max, 5, 2147483647) || Number(h.min) > Number(h.max)) {
+      e[k] = `${k} min ≤ max`;
+    }
+  });
+  return e;
+}
+
 const i18n = new VueI18n({
   locale: localStorage.getItem('lang') || 'en',
   fallbackLocale: 'en',
@@ -67,6 +118,16 @@ new Vue({
     clientEditAddressId: null,
     qrcode: null,
     copiedClientId: null,
+
+    view: 'clients',
+    serverSettings: null,
+    serverDraft: null,
+    serverErrors: {},
+    serverLoading: false,
+    serverSaving: false,
+    serverSaveResult: null,
+    regenerateConfirm: false,
+    obfExpanded: false,
 
     currentRelease: null,
     latestRelease: null,
@@ -370,6 +431,62 @@ new Vue({
     toggleCharts() {
       localStorage.setItem('uiShowCharts', this.uiShowCharts ? 1 : 0);
     },
+    deepCopySettings(s) {
+      return JSON.parse(JSON.stringify(s));
+    },
+    openServerSettings() {
+      this.view = 'server-settings';
+      this.serverErrors = {};
+      this.serverSaveResult = null;
+      this.serverLoading = true;
+      this.api.getServerSettings()
+        .then((s) => {
+          this.serverSettings = s;
+          this.serverDraft = this.deepCopySettings(s);
+        })
+        .catch((err) => alert(err.message || err.toString()))
+        .finally(() => {
+          this.serverLoading = false;
+        });
+    },
+    closeServerSettings() {
+      this.view = 'clients';
+    },
+    fieldErr(field) {
+      return this.serverErrors[field] || this.serverClientErrors[field] || '';
+    },
+    saveServerSettings() {
+      if (!this.serverCanSave) return;
+      this.serverSaving = true;
+      this.serverErrors = {};
+      this.api.updateServerSettings(this.serverDraft)
+        .then((res) => {
+          this.serverSettings = res.settings;
+          this.serverDraft = this.deepCopySettings(res.settings);
+          this.serverSaveResult = { restarted: res.restarted, mustReimport: res.mustReimport };
+        })
+        .catch((err) => {
+          if (err.fieldErrors) this.serverErrors = err.fieldErrors;
+          else alert(err.message || err.toString());
+        })
+        .finally(() => {
+          this.serverSaving = false;
+        });
+    },
+    confirmRegenerateKeypair() {
+      this.serverSaving = true;
+      this.api.regenerateKeypair()
+        .then((res) => {
+          if (this.serverSettings) this.serverSettings.publicKey = res.publicKey;
+          if (this.serverDraft) this.serverDraft.publicKey = res.publicKey;
+          this.serverSaveResult = { restarted: true, mustReimport: true };
+        })
+        .catch((err) => alert(err.message || err.toString()))
+        .finally(() => {
+          this.serverSaving = false;
+          this.regenerateConfirm = false;
+        });
+    },
   },
   filters: {
     bytes,
@@ -449,6 +566,15 @@ new Vue({
       this.latestRelease = latestRelease;
     }).catch((err) => console.error(err));
   },
+  watch: {
+    serverDraft: {
+      deep: true,
+      handler() {
+        if (Object.keys(this.serverErrors).length) this.serverErrors = {};
+        this.serverSaveResult = null;
+      },
+    },
+  },
   computed: {
     chartOptionsTX() {
       const opts = {
@@ -476,6 +602,20 @@ new Vue({
         return this.prefersDarkScheme.matches ? 'dark' : 'light';
       }
       return this.uiTheme;
+    },
+    serverDirty() {
+      return !!(this.serverSettings && this.serverDraft
+        && JSON.stringify(this.serverSettings) !== JSON.stringify(this.serverDraft));
+    },
+    serverClientErrors() {
+      if (!this.serverDraft) return {};
+      return validateServerDraft(this.serverDraft);
+    },
+    serverValid() {
+      return Object.keys(this.serverClientErrors).length === 0;
+    },
+    serverCanSave() {
+      return this.serverDirty && this.serverValid && !this.serverSaving;
     },
   },
 });

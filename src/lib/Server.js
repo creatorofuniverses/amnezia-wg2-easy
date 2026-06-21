@@ -228,6 +228,31 @@ module.exports = class Server {
         const { address } = await readBody(event);
         await WireGuard.updateClientAddress({ clientId, address });
         return { success: true };
+      }))
+      .get('/api/server-settings', defineEventHandler(async () => {
+        return WireGuard.getServerSettings();
+      }))
+      .post('/api/server-settings', defineEventHandler(async (event) => {
+        const patch = await readBody(event);
+        if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+          throw createError({ status: 400, message: 'Invalid body' });
+        }
+        for (const key of Object.keys(patch)) {
+          if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            throw createError({ status: 403 });
+          }
+        }
+        try {
+          return await WireGuard.updateServerSettings(patch);
+        } catch (err) {
+          if (err.statusCode === 400) {
+            throw createError({ status: 400, message: 'Validation failed', data: { errors: err.errors } });
+          }
+          throw createError({ status: err.statusCode || 500, message: err.message });
+        }
+      }))
+      .post('/api/server-settings/regenerate-keypair', defineEventHandler(async () => {
+        return WireGuard.regenerateKeypair();
       }));
 
     const safePathJoin = (base, target) => {
