@@ -195,6 +195,22 @@ module.exports = class Server {
         await WireGuard.disableClient({ clientId });
         return { success: true };
       }))
+      .post('/api/wireguard/client/:clientId/legacy/enable', defineEventHandler(async (event) => {
+        const clientId = getRouterParam(event, 'clientId');
+        if (clientId === '__proto__' || clientId === 'constructor' || clientId === 'prototype') {
+          throw createError({ status: 403 });
+        }
+        await WireGuard.setClientLegacy({ clientId, legacy: true });
+        return { success: true };
+      }))
+      .post('/api/wireguard/client/:clientId/legacy/disable', defineEventHandler(async (event) => {
+        const clientId = getRouterParam(event, 'clientId');
+        if (clientId === '__proto__' || clientId === 'constructor' || clientId === 'prototype') {
+          throw createError({ status: 403 });
+        }
+        await WireGuard.setClientLegacy({ clientId, legacy: false });
+        return { success: true };
+      }))
       .put('/api/wireguard/client/:clientId/name', defineEventHandler(async (event) => {
         const clientId = getRouterParam(event, 'clientId');
         if (clientId === '__proto__' || clientId === 'constructor' || clientId === 'prototype') {

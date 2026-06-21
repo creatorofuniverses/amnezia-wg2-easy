@@ -9,6 +9,7 @@ const QRCode = require('qrcode');
 const Util = require('./Util');
 const ServerError = require('./ServerError');
 const ShareString = require('./awgShareString');
+const { stripImitationKeys } = require('./stripImitationKeys');
 
 const {
   WG_PATH,
@@ -188,6 +189,7 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
       id: clientId,
       name: client.name,
       enabled: client.enabled,
+      legacy: client.legacy === true,
       address: client.address,
       publicKey: client.publicKey,
       createdAt: new Date(client.createdAt),
@@ -250,7 +252,7 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
     const config = await this.getConfig();
     const client = await this.getClient({ clientId });
 
-    return `
+    const conf = `
 [Interface]
 PrivateKey = ${client.privateKey ? `${client.privateKey}` : 'REPLACE_ME'}
 Address = ${client.address}
@@ -280,6 +282,7 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
 }AllowedIPs = ${WG_ALLOWED_IPS}
 PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}
 Endpoint = ${WG_HOST}:${WG_PORT}`;
+    return client.legacy ? stripImitationKeys(conf) : conf;
   }
 
   async getClientShareString({ clientId }) {
@@ -339,6 +342,7 @@ Endpoint = ${WG_HOST}:${WG_PORT}`;
       updatedAt: new Date(),
 
       enabled: true,
+      legacy: false,
     };
 
     config.clients[id] = client;
@@ -370,6 +374,15 @@ Endpoint = ${WG_HOST}:${WG_PORT}`;
     const client = await this.getClient({ clientId });
 
     client.enabled = false;
+    client.updatedAt = new Date();
+
+    await this.saveConfig();
+  }
+
+  async setClientLegacy({ clientId, legacy }) {
+    const client = await this.getClient({ clientId });
+
+    client.legacy = !!legacy;
     client.updatedAt = new Date();
 
     await this.saveConfig();
