@@ -173,4 +173,41 @@ class API {
     return res.text();
   }
 
+  async getServerSettings() {
+    return this.call({
+      method: 'get',
+      path: '/server-settings',
+    });
+  }
+
+  async updateServerSettings(patch) {
+    const res = await fetch('./api/server-settings', {
+      method: 'post',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    let body = {};
+    try {
+      body = await res.json();
+    } catch (e) {
+      // no/!json body
+    }
+    if (!res.ok) {
+      if (res.status === 400) {
+        const err = new Error(body.statusMessage || body.message || 'Validation failed');
+        err.fieldErrors = (body.data && body.data.errors) || {};
+        throw err;
+      }
+      throw new Error(body.message || body.error || res.statusText);
+    }
+    return body;
+  }
+
+  async regenerateKeypair() {
+    return this.call({
+      method: 'post',
+      path: '/server-settings/regenerate-keypair',
+    });
+  }
+
 }
