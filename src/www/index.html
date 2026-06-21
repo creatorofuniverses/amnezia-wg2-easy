@@ -380,6 +380,27 @@
   .awg-toolbar-btn { width:38px; height:38px; border-radius: var(--radius-pill); display:flex; align-items:center; justify-content:center; background: var(--surface-container-high); color: var(--on-surface-variant); border:none; cursor:pointer; transition: background-color .15s ease, color .15s ease; }
   .awg-toolbar-btn:hover { background: var(--surface-container-highest); color: var(--on-surface); }
 
+  /* ── Server settings screen ─────────────────────────────────── */
+  .awg-screen-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .awg-section-label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--primary); letter-spacing:.12em; margin:0 0 7px 4px; }
+  .awg-group { margin-bottom:12px; }
+  .awg-group-body > * + * { border-top:1px solid var(--outline-variant); }
+  .awg-field { display:flex; flex-direction:column; gap:4px; padding:9px 0; }
+  .awg-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:9px 0; }
+  .awg-grid-2 .awg-field { padding:0; border:none; }
+  .awg-field-label { font-size:12px; color:var(--on-surface-variant); }
+  .awg-field-helper { font-size:12px; color:var(--on-surface-variant); }
+  .awg-field-helper.is-error { color:var(--error); }
+  .awg-input { width:100%; background:var(--surface-container); border:1px solid var(--outline-variant); border-radius:12px; padding:12px; color:var(--on-surface); outline:none; box-sizing:border-box; transition:border-color .15s ease; }
+  .awg-input:focus { border:2px solid var(--primary); padding:11px; }
+  .awg-input.is-invalid { border-color:var(--error); }
+  .awg-input.awg-mono { font-family:var(--font-mono); }
+  .awg-restart-notice { display:flex; gap:10px; align-items:flex-start; background:var(--surface-container-highest); border:1px solid var(--outline-variant); border-radius:12px; padding:12px; font-size:13px; color:var(--on-surface-variant); margin-bottom:12px; }
+  .awg-chip { display:inline-block; font-family:var(--font-mono); font-size:12px; background:var(--surface-container-highest); border:1px solid var(--outline-variant); border-radius:var(--radius-pill); padding:4px 10px; color:var(--on-surface); }
+  .awg-chip .awg-chip-k { color:var(--on-surface-variant); }
+  .awg-expander { width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; cursor:pointer; color:var(--on-surface); font-weight:600; padding:9px 0; }
+  @media (max-width:520px) { .awg-grid-2 { grid-template-columns:1fr; } }
+
   /* ── Version badge ─────────────────────────────────────────── */
 
   .awg-version { font-family: var(--font-mono) !important; font-size: 11px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--primary-container); color: var(--on-primary-container); font-weight: var(--weight-semibold); }
@@ -427,6 +448,13 @@
                     d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 19.875v-6.75Z" />
               </svg>
             </label>
+            <!-- Server settings -->
+            <button @click="openServerSettings()"
+              class="awg-toolbar-btn transition" :title="$t('serverSettings.title')">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+              </svg>
+            </button>
             <span v-if="requiresPassword"
               class="text-sm text-gray-400 dark:text-neutral-400 cursor-pointer hover:underline"
               @click="logout">
@@ -439,6 +467,7 @@
           </div>
         </div>
         <div class="text-sm text-gray-400 dark:text-neutral-400 mb-5"></div>
+        <template v-if="view === 'clients'">
         <div v-if="latestRelease"
           class="awg-update-banner p-4 text-sm font-small mb-10 awg-fade-in"
           :title="`v${currentRelease} → v${latestRelease.version}`">
@@ -755,6 +784,64 @@
             </div>
           </div>
         </div>
+        </template>
+
+        <template v-else-if="view === 'server-settings'">
+          <div class="awg-fade-in">
+            <div class="awg-screen-header">
+              <button @click="closeServerSettings()" class="awg-toolbar-btn" :title="$t('serverSettings.back')">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+              <h1 class="awg-title flex-grow dark:text-neutral-200" style="margin:0">{{$t('serverSettings.title')}}</h1>
+              <button @click="saveServerSettings()" :disabled="!serverCanSave"
+                class="awg-btn awg-btn-primary py-2 px-4" :class="{ 'is-disabled': !serverCanSave }">
+                {{$t('serverSettings.save')}}
+              </button>
+            </div>
+
+            <div v-if="serverLoading" class="p-5 text-sm" style="color:var(--on-surface-variant)">{{$t('serverSettings.loading')}}</div>
+
+            <template v-else-if="serverDraft">
+              <div class="awg-restart-notice">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 flex-shrink-0">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <span>{{$t('serverSettings.restartNotice')}}</span>
+              </div>
+              <div v-if="serverSaveResult && serverSaveResult.mustReimport" class="awg-restart-notice" style="color:var(--on-surface)">
+                <span>{{$t('serverSettings.reimportHint')}}</span>
+              </div>
+
+              <!-- NETWORK -->
+              <div class="awg-group">
+                <p class="awg-section-label">{{$t('serverSettings.network')}}</p>
+                <div class="awg-card" style="padding:16px">
+                  <div class="awg-group-body">
+                    <div class="awg-field">
+                      <label class="awg-field-label">{{$t('serverSettings.host')}}</label>
+                      <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('host') }" v-model.trim="serverDraft.host" />
+                      <span class="awg-field-helper" :class="{ 'is-error': fieldErr('host') }">{{ fieldErr('host') || $t('serverSettings.hostHelper') }}</span>
+                    </div>
+                    <div class="awg-grid-2">
+                      <div class="awg-field">
+                        <label class="awg-field-label">{{$t('serverSettings.port')}}</label>
+                        <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('port') }" v-model.trim="serverDraft.port" />
+                        <span v-if="fieldErr('port')" class="awg-field-helper is-error">{{ fieldErr('port') }}</span>
+                      </div>
+                      <div class="awg-field">
+                        <label class="awg-field-label">{{$t('serverSettings.mtu')}}</label>
+                        <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('mtu') }" v-model.trim="serverDraft.mtu" />
+                        <span v-if="fieldErr('mtu')" class="awg-field-helper is-error">{{ fieldErr('mtu') }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
 
         <!-- QR Code-->
         <div v-if="qrcode">
