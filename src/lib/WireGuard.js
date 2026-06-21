@@ -172,6 +172,86 @@ module.exports = class WireGuard {
     debug('Config synced.');
   }
 
+  async getServerSettings() {
+    const config = await this.getConfig();
+    const s = config.server;
+    return {
+      host: s.host,
+      port: s.port,
+      mtu: s.mtu,
+      dns: s.dns,
+      defaultAddress: s.defaultAddress,
+      allowedIPs: s.allowedIPs,
+      persistentKeepalive: s.persistentKeepalive,
+      jc: s.jc,
+      jmin: s.jmin,
+      jmax: s.jmax,
+      s1: s.s1,
+      s2: s.s2,
+      s3: s.s3,
+      s4: s.s4,
+      h1: s.h1,
+      h2: s.h2,
+      h3: s.h3,
+      h4: s.h4,
+      i1: s.i1,
+      i2: s.i2,
+      i3: s.i3,
+      i4: s.i4,
+      i5: s.i5,
+      publicKey: s.publicKey,
+    };
+  }
+
+  async updateServerSettings(patch) {
+    const config = await this.getConfig();
+    const errors = ServerSettings.validateServerSettings(patch, config.server);
+    if (Object.keys(errors).length > 0) {
+      throw Object.assign(new Error('Invalid server settings'), { statusCode: 400, errors });
+    }
+
+    const prev = { ...config.server };
+    const diff = ServerSettings.classify(prev, patch);
+
+    if (diff.needsRestart) {
+      // Tear down using the CURRENTLY on-disk conf (live firewall rules) BEFORE writing.
+      await Util.exec('wg-quick down wg0').catch(() => { });
+    }
+
+    Object.assign(config.server, patch);
+    await this.__saveConfig(config);
+
+    if (diff.needsRestart) {
+      try {
+        await Util.exec('wg-quick up wg0');
+      } catch (err) {
+        // Roll back so a bad value never strands the server offline.
+        Object.assign(config.server, prev);
+        await this.__saveConfig(config);
+        await Util.exec('wg-quick up wg0').catch(() => { });
+        throw Object.assign(new Error(`Failed to apply settings: ${err.message}`), { statusCode: 500 });
+      }
+    } else {
+      await this.__syncConfig();
+    }
+
+    return { settings: await this.getServerSettings(), restarted: diff.needsRestart, mustReimport: diff.mustReimport };
+  }
+
+  async regenerateKeypair() {
+    const config = await this.getConfig();
+    const privateKey = await Util.exec('wg genkey');
+    const publicKey = await Util.exec(`echo ${privateKey} | wg pubkey`, {
+      log: 'echo ***hidden*** | wg pubkey',
+    });
+    await Util.exec('wg-quick down wg0').catch(() => { });
+    config.server.privateKey = privateKey;
+    config.server.publicKey = publicKey;
+    await this.__saveConfig(config);
+    await Util.exec('wg-quick up wg0');
+    return { publicKey, mustReimport: true };
+  }
+
   async getClients() {
     const config = await this.getConfig();
     const clients = Object.entries(config.clients).map(([clientId, client]) => ({
