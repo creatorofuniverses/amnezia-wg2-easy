@@ -68,10 +68,20 @@ Notes:
 
 - The server's own `address` (e.g. `10.8.0.1`) stays **read-only / out of scope**.
 - `defaultAddress` (the `x` template) only governs **new** client IP assignment;
-  existing clients keep their addresses.
-- `i1–i5` are already emitted to **every** client config today (from env
-  constants), so they are de-facto server-wide already — making them editable is
-  consistent, not new behavior.
+  existing clients keep their addresses. **Constraint:** because the server
+  `address` is frozen, `defaultAddress` must stay in the **same /24** as
+  `config.server.address` — only the host-octet template (`x`) may change.
+  Editing the subnet base (`10.8.0.x` → `10.9.0.x`) would put new clients on a
+  different subnet than the `10.8.0.1` server and break the rendered
+  `MASQUERADE -s …/24` rule. This is enforced in validation (§6), not merely
+  "zero disruption."
+- `i1–i5` are already emitted to client configs today (from env constants), so
+  they are de-facto server-wide already — making them editable is consistent, not
+  new behavior. **Exception:** `getClientConfiguration()` ends with
+  `client.legacy ? stripImitationKeys(conf) : conf` (`WireGuard.js:285`), which
+  strips `ImitateProtocol` and tagged `I*` lines — so legacy clients deliberately
+  don't receive tagged i-params. The "server-wide" value isn't literally
+  universal; legacy stripping still applies.
 
 ## 2. Migration
 
@@ -82,10 +92,18 @@ persisted starting point — **zero behavior change** until someone edits in the
 
 ## 3. Generation reads from `config.server`, not env
 
-`__saveConfig()` and `getClientConfiguration()` switch their direct env-constant
-reads (`WG_HOST`, `WG_PORT`, `WG_MTU`, `WG_DEFAULT_DNS`, `WG_ALLOWED_IPS`,
-`WG_PERSISTENT_KEEPALIVE`, `I1–I5`) to `config.server.*`. The `config.js` env
-constants remain — **only as the seed source** for first boot / migration.
+Two call sites switch their direct env-constant reads to `config.server.*` —
+note which reads which, so the implementer looks in the right function:
+
+- `__saveConfig()` (`WireGuard.js:140–156`) reads **only `WG_PORT`** (as
+  `ListenPort`) among the editable set (plus `WG_PRE_UP/POST_UP/PRE_DOWN/POST_DOWN`
+  and `IMITATE_PROTOCOL`, which are out of scope here).
+- `getClientConfiguration()` (`WireGuard.js:259–284`) reads `WG_DEFAULT_DNS`,
+  `WG_MTU`, `I1–I5`, `WG_ALLOWED_IPS`, `WG_PERSISTENT_KEEPALIVE`, `WG_HOST`,
+  `WG_PORT`.
+
+The `config.js` env constants remain — **only as the seed source** for first
+boot / migration.
 
 **Integration gotcha — iptables / port coupling:** the default
 `WG_POST_UP` / `WG_PRE_DOWN` / `WG_POST_DOWN` rules are pre-baked in `config.js`
@@ -102,27 +120,46 @@ Client-config-only changes need no interface action (configs are generated on
 demand), so application collapses to **two outcomes**: save-only, or
 save + interface restart.
 
+**Ordering is correctness-critical:** `wg-quick down` runs the `PostDown` rules
+*from the on-disk conf at down-time*. Since §3 renders those rules dynamically
+from `config.server.port` / `defaultAddress`, we must bring the interface **down
+on the current conf first, then write, then up** — otherwise `down` tears down
+with the *new* port/subnet (a rule never installed → error) while the live old
+`--dport`/`MASQUERADE` rules leak permanently. (The existing first-boot sequence
+at `WireGuard.js:103–105` writes-then-down, but it's benign there because there's
+no live interface with a different port yet.)
+
 ```
 1. config = await getConfig()
 2. errors = validateServerSettings(patch)
      if errors → throw HTTP 400 { errors }            // nothing written
 3. prev = snapshot(config.server)                       // for rollback
 4. diff = classify(prev, patch)                         // pure → {changed[], needsRestart, mustReimport}
-5. Object.assign(config.server, patch)
-6. await __saveConfig(config)                           // writes wg0.json + wg0.conf
-7. if diff.needsRestart:
-     try   { wg-quick down wg0 ; wg-quick up wg0 }
+5. if diff.needsRestart: wg-quick down wg0              // DOWN on CURRENT conf (live rules)
+6. Object.assign(config.server, patch)
+7. await __saveConfig(config)                           // now write wg0.json + wg0.conf
+8. if diff.needsRestart:
+     try   { wg-quick up wg0 }                          // installs new rules
      catch { restore prev → __saveConfig → wg-quick up ; throw HTTP 500 }
-8. return { settings, restarted: diff.needsRestart, mustReimport: diff.mustReimport }
+9. return { settings, restarted: diff.needsRestart, mustReimport: diff.mustReimport }
 ```
+
+Trade-off: a few hundred ms where the on-disk conf lags the (down) interface.
+Acceptable for an admin-only, rare write, and strictly safer than leaking
+firewall state. `regenerate-keypair` (§5) bounces the interface too and follows
+the same down→write→up ordering.
 
 ### Classification (`classify(prev, next)` — pure function)
 
 - **`needsRestart`** = any of `{ port, jc, jmin, jmax, s1, s2, s3, s4,
   h1, h2, h3, h4 }` changed → `wg-quick down/up`.
-  - `port` rebinds `ListenPort`; obfuscation params are AWG interface-level and
-    are only safely re-applied via a full interface bounce (there is no existing
-    runtime-change path for them — first boot already does down/up).
+  - A runtime-sync path *does* exist (`__syncConfig()` →
+    `wg syncconf wg0 <(wg-quick strip wg0)`, `WireGuard.js:182`, run after every
+    client add/edit). We deliberately use down/up anyway: the AWG-specific S/H/J
+    junk params are set at **device creation** and `syncconf` won't re-apply them;
+    and although `port` alone could be rebound, its firewall `--dport` rule also
+    has to change, which needs the down/up teardown. So down/up is the correct
+    tool for both — not because no sync path exists.
 - **Everything else** (`host, mtu, dns, defaultAddress, allowedIPs,
   persistentKeepalive, i1–i5`) → **save-only, zero client disruption**.
 - **`mustReimport`** (existing tunnels break until clients re-download their
@@ -148,21 +185,32 @@ guards on params, the `WireGuard` singleton.
   `{ settings, restarted, mustReimport }`.
 - `POST /api/server-settings/regenerate-keypair` → rotate `privateKey` /
   `publicKey`, restart the interface, return `{ publicKey, mustReimport: true }`.
-  Confirm-gated in the UI (reuses the destructive Delete pattern).
+  A **plain authenticated POST** — confirmation is **UI-side only** (the backend
+  `DELETE /client/:id` has no confirm gate either, `Server.js:177–181`; there is
+  no reusable backend confirm primitive to inherit).
 
 ## 6. Validation — `lib/serverSettings.js` (backend-authoritative)
 
-Pure `validateServerSettings(patch) → { <field>: message }` (empty object = valid).
-The frontend mirrors these rules for inline UX, but the backend is the gate.
+Pure `validateServerSettings(patch, currentServer) → { <field>: message }`
+(empty object = valid). `currentServer` is passed so cross-field rules (the
+same-/24 `defaultAddress` constraint) can reference the frozen `address`. The
+frontend mirrors these rules for inline UX, but the backend is the gate.
+
+**New validation helpers are required** — `Util` exposes **only `isValidIPv4`**
+(`Util.js:7–18`); there is no IPv6 or CIDR validator. The shipped default
+`allowedIPs: 0.0.0.0/0, ::/0` is IPv6 + CIDR, so validating it with
+`isValidIPv4` alone would reject the default and lock admins out of saving.
+Add `isValidCIDR` and an IPv6-aware IP check (in `serverSettings.js`, or extend
+`Util`); listed in §"Files touched". Do **not** describe these as "reuse existing."
 
 | Field | Rule |
 |---|---|
 | `host` | non-empty hostname or IP |
 | `port` | integer 1–65535 |
 | `mtu` | `null`/empty, or integer 576–1500 |
-| `dns` | comma-separated list of valid IPs (reuse `Util` IP validation) |
-| `defaultAddress` | valid `x`-template (e.g. `10.8.0.x`) |
-| `allowedIPs` | comma-separated list of valid CIDRs |
+| `dns` | comma-separated list of valid IPs (IPv4 **and** IPv6) |
+| `defaultAddress` | valid `x`-template (e.g. `10.8.0.x`) **and same /24 as `currentServer.address`** (host-octet template only) |
+| `allowedIPs` | comma-separated list of valid CIDRs (IPv4 **and** IPv6, incl. `0.0.0.0/0`, `::/0`) |
 | `persistentKeepalive` | integer ≥ 0 |
 | `jc`,`jmin`,`jmax` | integers, `jmin ≤ jmax` |
 | `s1–s4` | integers in their respective valid ranges |
@@ -173,22 +221,29 @@ Invalid patch → HTTP 400 `{ errors }`, **no write**.
 
 ## 7. Error handling
 
-- **Rollback on apply failure** (step 7): if `wg-quick up` fails with the new
+- **Rollback on apply failure** (step 8): if `wg-quick up` fails with the new
   config, restore the snapshotted `config.server`, rewrite, bring the interface
   back up, and return 500 — a bad value must never strand the server offline.
 - **Validation failure** → 400 before any write.
 - **Concurrency**: settings saves are rare and admin-only; rely on the existing
-  cached-promise `getConfig()` and sequential `await`s. No new locking.
+  cached-promise `getConfig()` and sequential `await`s. No new locking. Two
+  overlapping saves still read-modify-write the same `config.server` object —
+  accepted last-writer-wins window, not worth locking for an admin-rare action.
 
 ## 8. Testing
 
 Existing `node:test` pattern in `src/lib/__tests__/` (cf.
-`stripImitationKeys.test.js`, `awgShareString.test.js`). Pure units only; the
-`wg-quick`/`wg syncconf` shell side stays manual per CLAUDE.md.
+`stripImitationKeys.test.js`, `awgShareString.test.js`; `package.json` already
+defines `"test": "node --test"` — CLAUDE.md's "no test suite" line is stale and
+should be corrected as part of this work). Pure units only; the
+`wg-quick`/`wg syncconf` shell side stays manual.
 
-- `validateServerSettings` — valid/invalid per field, boundary values.
+- `validateServerSettings` — valid/invalid per field, boundary values; include
+  IPv6/CIDR `allowedIPs` (incl. the default `0.0.0.0/0, ::/0`) **passing**, and a
+  `defaultAddress` subnet-base change (`10.8.0.x` → `10.9.0.x`) **rejected** while
+  a same-/24 host-octet change passes.
 - `classify(prev, next)` — correct `needsRestart` / `mustReimport` flags for each
-  field and combinations.
+  field and combinations; assert a same-/24 `defaultAddress` change is save-only.
 - Generation from `config.server` — fixture config → expected `wg0.conf` and
   client-config strings (proves env was fully replaced by `config.server`).
 - Migration backfill — a `wg0.json` missing the new fields → `getConfig()` seeds
@@ -201,9 +256,13 @@ Existing `node:test` pattern in `src/lib/__tests__/` (cf.
   from `serverSettings.js`); `getConfig()` migration backfill; `__saveConfig()` and
   `getClientConfiguration()` read `config.server.*` + render default
   PreUp/PostUp from `config.server.port`/`defaultAddress`.
-- `src/lib/serverSettings.js` — new: `validateServerSettings()`, `classify()`
-  (pure, unit-tested).
+- `src/lib/serverSettings.js` — new: `validateServerSettings(patch, current)`,
+  `classify(prev, next)`, and new validation helpers `isValidCIDR` +
+  IPv6-aware IP check (pure, unit-tested). May instead extend `Util` with the
+  IP/CIDR helpers if preferred.
 - `src/lib/Server.js` — three new routes.
 - `src/config.js` — unchanged role (still the env seed source); no new exports
   required, but the H-space constants may move/share with `serverSettings.js`.
 - `src/lib/__tests__/serverSettings.test.js` — new test suite.
+- `CLAUDE.md` — correct the stale "no test suite" sentence (the Node app does
+  have `node:test` suites).
