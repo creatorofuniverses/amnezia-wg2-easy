@@ -839,6 +839,36 @@
                   </div>
                 </div>
               </div>
+              <!-- CLIENT DEFAULTS -->
+              <div class="awg-group">
+                <p class="awg-section-label">{{$t('serverSettings.clientDefaults')}}</p>
+                <div class="awg-card" style="padding:16px">
+                  <div class="awg-group-body">
+                    <div class="awg-grid-2">
+                      <div class="awg-field">
+                        <label class="awg-field-label">{{$t('serverSettings.addressRange')}}</label>
+                        <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('defaultAddress') }" v-model.trim="serverDraft.defaultAddress" />
+                        <span v-if="fieldErr('defaultAddress')" class="awg-field-helper is-error">{{ fieldErr('defaultAddress') }}</span>
+                      </div>
+                      <div class="awg-field">
+                        <label class="awg-field-label">{{$t('serverSettings.keepalive')}}</label>
+                        <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('persistentKeepalive') }" v-model.trim="serverDraft.persistentKeepalive" />
+                        <span v-if="fieldErr('persistentKeepalive')" class="awg-field-helper is-error">{{ fieldErr('persistentKeepalive') }}</span>
+                      </div>
+                    </div>
+                    <div class="awg-field">
+                      <label class="awg-field-label">{{$t('serverSettings.dns')}}</label>
+                      <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('dns') }" v-model.trim="serverDraft.dns" />
+                      <span v-if="fieldErr('dns')" class="awg-field-helper is-error">{{ fieldErr('dns') }}</span>
+                    </div>
+                    <div class="awg-field">
+                      <label class="awg-field-label">{{$t('serverSettings.allowedIps')}}</label>
+                      <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('allowedIPs') }" v-model.trim="serverDraft.allowedIPs" />
+                      <span class="awg-field-helper" :class="{ 'is-error': fieldErr('allowedIPs') }">{{ fieldErr('allowedIPs') || $t('serverSettings.clientDefaultsHelper') }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </template>
           </div>
         </template>
