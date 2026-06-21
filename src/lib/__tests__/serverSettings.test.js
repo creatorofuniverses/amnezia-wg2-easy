@@ -96,3 +96,77 @@ test('mtu accepts null/empty', () => {
     {},
   );
 });
+
+const PREV = {
+  host: 'a.example',
+  port: '51820',
+  mtu: 1420,
+  dns: '1.1.1.1',
+  defaultAddress: '10.8.0.x',
+  allowedIPs: '0.0.0.0/0',
+  persistentKeepalive: '0',
+  jc: 4,
+  jmin: 40,
+  jmax: 70,
+  s1: 0,
+  s2: 0,
+  s3: 20,
+  s4: 8,
+  h1: {
+    min: 1,
+    max: 2,
+  },
+  h2: {
+    min: 3,
+    max: 4,
+  },
+  h3: {
+    min: 5,
+    max: 6,
+  },
+  h4: {
+    min: 7,
+    max: 8,
+  },
+  i1: null,
+};
+
+test('classify: client-only DNS change is save-only', () => {
+  const r = S.classify(PREV, { dns: '8.8.8.8' });
+  assert.deepStrictEqual(r.changed, ['dns']);
+  assert.strictEqual(r.needsRestart, false);
+  assert.strictEqual(r.mustReimport, false);
+});
+
+test('classify: host change needs reimport but not restart', () => {
+  const r = S.classify(PREV, { host: 'b.example' });
+  assert.strictEqual(r.needsRestart, false);
+  assert.strictEqual(r.mustReimport, true);
+});
+
+test('classify: port change needs restart and reimport', () => {
+  const r = S.classify(PREV, { port: 51821 });
+  assert.strictEqual(r.needsRestart, true);
+  assert.strictEqual(r.mustReimport, true);
+});
+
+test('classify: obfuscation H-range change needs restart and reimport', () => {
+  const r = S.classify(PREV, { h1: { min: 9, max: 10 } });
+  assert.deepStrictEqual(r.changed, ['h1']);
+  assert.strictEqual(r.needsRestart, true);
+  assert.strictEqual(r.mustReimport, true);
+});
+
+test('classify: same-value patch (string vs number port) is no change', () => {
+  const r = S.classify(PREV, { port: '51820', h1: { min: 1, max: 2 } });
+  assert.deepStrictEqual(r.changed, []);
+  assert.strictEqual(r.needsRestart, false);
+});
+
+test('classify: same-/24 defaultAddress template change is save-only', () => {
+  const r = S.classify(PREV, { defaultAddress: '10.8.0.x' });
+  assert.deepStrictEqual(r.changed, []); // identical value
+  const r2 = S.classify({ ...PREV, defaultAddress: '10.8.1.x' }, { defaultAddress: '10.8.0.x' });
+  assert.deepStrictEqual(r2.changed, ['defaultAddress']);
+  assert.strictEqual(r2.needsRestart, false);
+});

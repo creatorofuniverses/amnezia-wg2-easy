@@ -87,6 +87,25 @@ function validateServerSettings(patch, current = {}) {
   return errors;
 }
 
+const RESTART_FIELDS = ['port', 'jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4', 'h1', 'h2', 'h3', 'h4'];
+const REIMPORT_FIELDS = ['host', ...RESTART_FIELDS];
+
+const eq = (a, b) => {
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    return a.min === b.min && a.max === b.max;
+  }
+  return String(a) === String(b);
+};
+
+function classify(prev, next) {
+  const changed = Object.keys(next).filter((k) => !eq(prev[k], next[k]));
+  return {
+    changed,
+    needsRestart: changed.some((k) => RESTART_FIELDS.includes(k)),
+    mustReimport: changed.some((k) => REIMPORT_FIELDS.includes(k)),
+  };
+}
+
 module.exports = {
   H_SPACE_MIN,
   H_SPACE_MAX,
@@ -96,4 +115,7 @@ module.exports = {
   isValidCIDRList,
   isValidHostname,
   validateServerSettings,
+  RESTART_FIELDS,
+  REIMPORT_FIELDS,
+  classify,
 };
