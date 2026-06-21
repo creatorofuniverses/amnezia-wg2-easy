@@ -240,6 +240,8 @@ module.exports = class WireGuard {
 
   async regenerateKeypair() {
     const config = await this.getConfig();
+    const prevPrivateKey = config.server.privateKey;
+    const prevPublicKey = config.server.publicKey;
     const privateKey = await Util.exec('wg genkey');
     const publicKey = await Util.exec(`echo ${privateKey} | wg pubkey`, {
       log: 'echo ***hidden*** | wg pubkey',
@@ -248,7 +250,15 @@ module.exports = class WireGuard {
     config.server.privateKey = privateKey;
     config.server.publicKey = publicKey;
     await this.__saveConfig(config);
-    await Util.exec('wg-quick up wg0');
+    try {
+      await Util.exec('wg-quick up wg0');
+    } catch (err) {
+      config.server.privateKey = prevPrivateKey;
+      config.server.publicKey = prevPublicKey;
+      await this.__saveConfig(config);
+      await Util.exec('wg-quick up wg0').catch(() => { });
+      throw Object.assign(new Error(`Failed to regenerate keypair: ${err.message}`), { statusCode: 500 });
+    }
     return { publicKey, mustReimport: true };
   }
 
