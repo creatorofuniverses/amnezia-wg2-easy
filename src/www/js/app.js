@@ -131,6 +131,7 @@ new Vue({
     serverSaving: false,
     serverSaveResult: null,
     regenerateConfirm: false,
+    obfExpanded: false,
 
     currentRelease: null,
     latestRelease: null,

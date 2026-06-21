@@ -869,6 +869,65 @@
                   </div>
                 </div>
               </div>
+              <!-- OBFUSCATION DEFAULTS -->
+              <div class="awg-group">
+                <p class="awg-section-label">{{$t('serverSettings.obfuscation')}}</p>
+                <div class="awg-card" style="padding:16px">
+                  <div class="awg-group-body">
+                    <div class="awg-field" style="gap:8px">
+                      <button class="awg-expander" @click="obfExpanded = !obfExpanded">
+                        <span>{{$t('serverSettings.advanced')}}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" :style="obfExpanded ? 'transform:rotate(180deg)' : ''">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                        </svg>
+                      </button>
+                      <div v-if="!obfExpanded" style="display:flex; flex-wrap:wrap; gap:6px">
+                        <span class="awg-chip"><span class="awg-chip-k">Jc</span> {{serverDraft.jc}}</span>
+                        <span class="awg-chip"><span class="awg-chip-k">S1</span> {{serverDraft.s1}}</span>
+                        <span class="awg-chip"><span class="awg-chip-k">S2</span> {{serverDraft.s2}}</span>
+                        <span class="awg-chip"><span class="awg-chip-k">H1</span> {{serverDraft.h1.min}}-{{serverDraft.h1.max}}</span>
+                      </div>
+                      <p v-else class="awg-field-helper">{{$t('serverSettings.obfuscationHelper')}}</p>
+                    </div>
+                    <div v-if="obfExpanded" class="awg-field">
+                      <div class="awg-grid-2">
+                        <div class="awg-field">
+                          <label class="awg-field-label">Jc</label>
+                          <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('jc') }" v-model.trim="serverDraft.jc" />
+                          <span v-if="fieldErr('jc')" class="awg-field-helper is-error">{{ fieldErr('jc') }}</span>
+                        </div>
+                        <div class="awg-field">
+                          <label class="awg-field-label">Jmin / Jmax</label>
+                          <div class="awg-grid-2">
+                            <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('jmin') }" v-model.trim="serverDraft.jmin" />
+                            <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr('jmax') }" v-model.trim="serverDraft.jmax" />
+                          </div>
+                          <span v-if="fieldErr('jmin') || fieldErr('jmax')" class="awg-field-helper is-error">{{ fieldErr('jmin') || fieldErr('jmax') }}</span>
+                        </div>
+                      </div>
+                      <div class="awg-grid-2" style="margin-top:12px">
+                        <div class="awg-field" v-for="k in ['s1','s2','s3','s4']" :key="k">
+                          <label class="awg-field-label">{{ k.toUpperCase() }}</label>
+                          <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr(k) }" v-model.trim="serverDraft[k]" />
+                          <span v-if="fieldErr(k)" class="awg-field-helper is-error">{{ fieldErr(k) }}</span>
+                        </div>
+                      </div>
+                      <div class="awg-field" v-for="k in ['h1','h2','h3','h4']" :key="k" style="margin-top:12px">
+                        <label class="awg-field-label">{{ k.toUpperCase() }} (min / max)</label>
+                        <div class="awg-grid-2">
+                          <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr(k) }" v-model.trim="serverDraft[k].min" />
+                          <input class="awg-input awg-mono" :class="{ 'is-invalid': fieldErr(k) }" v-model.trim="serverDraft[k].max" />
+                        </div>
+                        <span v-if="fieldErr(k)" class="awg-field-helper is-error">{{ fieldErr(k) }}</span>
+                      </div>
+                      <div class="awg-field" v-for="k in ['i1','i2','i3','i4','i5']" :key="k" style="margin-top:12px">
+                        <label class="awg-field-label">{{ k.toUpperCase() }}</label>
+                        <input class="awg-input awg-mono" v-model.trim="serverDraft[k]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </template>
           </div>
         </template>
