@@ -10,6 +10,7 @@ const Util = require('./Util');
 const ServerError = require('./ServerError');
 const ShareString = require('./awgShareString');
 const { stripImitationKeys } = require('./stripImitationKeys');
+const ServerSettings = require('./serverSettings');
 
 const {
   WG_PATH,
@@ -99,6 +100,21 @@ module.exports = class WireGuard {
 
           debug('Configuration generated.');
         }
+
+        ServerSettings.seedServerDefaults(config.server, {
+          host: WG_HOST,
+          port: WG_PORT,
+          mtu: WG_MTU,
+          dns: WG_DEFAULT_DNS,
+          defaultAddress: WG_DEFAULT_ADDRESS,
+          allowedIPs: WG_ALLOWED_IPS,
+          persistentKeepalive: WG_PERSISTENT_KEEPALIVE,
+          i1: I1,
+          i2: I2,
+          i3: I3,
+          i4: I4,
+          i5: I5,
+        });
 
         await this.__saveConfig(config);
         await Util.exec('wg-quick down wg0').catch(() => { });

@@ -87,6 +87,15 @@ function validateServerSettings(patch, current = {}) {
   return errors;
 }
 
+const SERVER_SEED_KEYS = ['host', 'port', 'mtu', 'dns', 'defaultAddress', 'allowedIPs', 'persistentKeepalive', 'i1', 'i2', 'i3', 'i4', 'i5'];
+
+function seedServerDefaults(server, seeds) {
+  for (const key of Object.keys(seeds)) {
+    if (server[key] === undefined) server[key] = seeds[key];
+  }
+  return server;
+}
+
 const RESTART_FIELDS = ['port', 'jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4', 'h1', 'h2', 'h3', 'h4'];
 const REIMPORT_FIELDS = ['host', ...RESTART_FIELDS];
 
@@ -115,6 +124,8 @@ module.exports = {
   isValidCIDRList,
   isValidHostname,
   validateServerSettings,
+  SERVER_SEED_KEYS,
+  seedServerDefaults,
   RESTART_FIELDS,
   REIMPORT_FIELDS,
   classify,

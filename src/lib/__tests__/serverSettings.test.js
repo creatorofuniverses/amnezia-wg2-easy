@@ -170,3 +170,27 @@ test('classify: same-/24 defaultAddress template change is save-only', () => {
   assert.deepStrictEqual(r2.changed, ['defaultAddress']);
   assert.strictEqual(r2.needsRestart, false);
 });
+
+test('seedServerDefaults fills only missing keys, preserves existing', () => {
+  const server = { port: '51999', host: 'kept.example' };
+  const seeds = {
+    host: 'seed.example',
+    port: '51820',
+    mtu: null,
+    dns: '1.1.1.1',
+    defaultAddress: '10.8.0.x',
+    allowedIPs: '0.0.0.0/0, ::/0',
+    persistentKeepalive: '0',
+    i1: null,
+    i2: null,
+    i3: null,
+    i4: null,
+    i5: null,
+  };
+  S.seedServerDefaults(server, seeds);
+  assert.strictEqual(server.host, 'kept.example'); // preserved
+  assert.strictEqual(server.port, '51999'); // preserved
+  assert.strictEqual(server.dns, '1.1.1.1'); // seeded
+  assert.strictEqual(server.allowedIPs, '0.0.0.0/0, ::/0');
+  assert.strictEqual(server.mtu, null);
+});
