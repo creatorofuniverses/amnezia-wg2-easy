@@ -399,6 +399,8 @@
   .awg-chip { display:inline-block; font-family:var(--font-mono); font-size:12px; background:var(--surface-container-highest); border:1px solid var(--outline-variant); border-radius:var(--radius-pill); padding:4px 10px; color:var(--on-surface); }
   .awg-chip .awg-chip-k { color:var(--on-surface-variant); }
   .awg-expander { width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; cursor:pointer; color:var(--on-surface); font-weight:600; padding:9px 0; }
+  .awg-help { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:var(--radius-pill); background:var(--surface-container-highest); color:var(--on-surface-variant); font-size:10px; font-weight:700; cursor:help; margin-left:6px; vertical-align:middle; }
+  .awg-readonly-value { font-family:var(--font-mono); color:var(--on-surface); }
   @media (max-width:520px) { .awg-grid-2 { grid-template-columns:1fr; } }
 
   /* ── Version badge ─────────────────────────────────────────── */
@@ -874,6 +876,13 @@
                 <p class="awg-section-label">{{$t('serverSettings.obfuscation')}}</p>
                 <div class="awg-card" style="padding:16px">
                   <div class="awg-group-body">
+                    <div class="awg-field">
+                      <label class="awg-field-label">
+                        {{$t('serverSettings.imitateProtocol')}}
+                        <span class="awg-help" :title="$t('serverSettings.imitateHelp')">?</span>
+                      </label>
+                      <div class="awg-readonly-value">{{ serverDraft.imitateProtocol || 'none' }}</div>
+                    </div>
                     <div class="awg-field" style="gap:8px">
                       <button class="awg-expander" @click="obfExpanded = !obfExpanded">
                         <span>{{$t('serverSettings.advanced')}}</span>

@@ -200,11 +200,16 @@ module.exports = class WireGuard {
       i4: s.i4,
       i5: s.i5,
       publicKey: s.publicKey,
+      // Read-only: env-only (kept in sync with the responder at container start).
+      imitateProtocol: IMITATE_PROTOCOL,
     };
   }
 
   async updateServerSettings(patch) {
     const config = await this.getConfig();
+    // imitateProtocol is read-only/env-only; the UI echoes it back in the draft,
+    // so drop it before validate/classify/apply (never persisted to config.server).
+    delete patch.imitateProtocol;
     const errors = ServerSettings.validateServerSettings(patch, config.server);
     if (Object.keys(errors).length > 0) {
       throw Object.assign(new Error('Invalid server settings'), { statusCode: 400, errors });

@@ -54,6 +54,8 @@ const messages = { // eslint-disable-line no-unused-vars
       allowedIps: 'Allowed IPs',
       obfuscation: 'Obfuscation defaults',
       obfuscationHelper: 'Server-wide defaults — every client inherits these unless it sets its own.',
+      imitateProtocol: 'Imitation protocol',
+      imitateHelp: 'Read-only. To change which protocol the tunnel mimics, set IMITATE_PROTOCOL in the container environment (.env) and restart — it stays in sync with the probe-responder there.',
       advanced: 'Advanced parameters',
       keypair: 'Server keypair',
       publicKey: 'Public key',
