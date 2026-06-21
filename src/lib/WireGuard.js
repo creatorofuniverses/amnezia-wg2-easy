@@ -127,6 +127,7 @@ module.exports = class WireGuard {
 
           throw err;
         });
+        await this.__logDatapathImpl();
         // await Util.exec(`iptables -t nat -A POSTROUTING -s ${WG_DEFAULT_ADDRESS.replace('x', '0')}/24 -o ' + WG_DEVICE + ' -j MASQUERADE`);
         // await Util.exec('iptables -A INPUT -p udp -m udp --dport 51820 -j ACCEPT');
         // await Util.exec('iptables -A FORWARD -i wg0 -j ACCEPT');
@@ -138,6 +139,26 @@ module.exports = class WireGuard {
     }
 
     return this.__configPromise;
+  }
+
+  // Report (to stdout, so it lands in `docker logs`) whether awg-quick brought
+  // wg0 up on the host kernel module or fell back to the amneziawg-go userspace
+  // datapath. A userspace impl is a TUN device, so /sys/class/net/wg0/tun_flags
+  // exists; the kernel module's device has no such file. Best-effort: never throws.
+  async __logDatapathImpl() {
+    try {
+      await fs.access('/sys/class/net/wg0/tun_flags');
+      // eslint-disable-next-line no-console
+      console.log('datapath: amneziawg kernel module not found — using amneziawg-go userspace datapath (wg0 is a TUN)');
+    } catch (err) {
+      if (err && err.code === 'ENOENT') {
+        // eslint-disable-next-line no-console
+        console.log('datapath: using the amneziawg kernel module (host DKMS)');
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(`datapath: could not determine kernel vs userspace for wg0 (${err.message})`);
+      }
+    }
   }
 
   async saveConfig() {
