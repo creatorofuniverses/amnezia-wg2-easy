@@ -129,6 +129,20 @@ class API {
     });
   }
 
+  async enableClientLegacy({ clientId }) {
+    return this.call({
+      method: 'post',
+      path: `/wireguard/client/${clientId}/legacy/enable`,
+    });
+  }
+
+  async disableClientLegacy({ clientId }) {
+    return this.call({
+      method: 'post',
+      path: `/wireguard/client/${clientId}/legacy/disable`,
+    });
+  }
+
   async updateClientName({ clientId, name }) {
     return this.call({
       method: 'put',

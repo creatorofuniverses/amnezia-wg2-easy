@@ -331,6 +331,14 @@ new Vue({
         .catch((err) => alert(err.message || err.toString()))
         .finally(() => this.refresh().catch(console.error));
     },
+    toggleClientLegacy(client) {
+      const req = client.legacy
+        ? this.api.disableClientLegacy({ clientId: client.id })
+        : this.api.enableClientLegacy({ clientId: client.id });
+      req
+        .catch((err) => alert(err.message || err.toString()))
+        .finally(() => this.refresh().catch(console.error));
+    },
     updateClientName(client, name) {
       this.api.updateClientName({ clientId: client.id, name })
         .catch((err) => alert(err.message || err.toString()))
