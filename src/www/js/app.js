@@ -51,21 +51,17 @@ function svInt(v, lo, hi) {
   return Number.isInteger(n) && n >= lo && n <= hi;
 }
 // Mirrors src/lib/serverSettings.js for instant inline UX; the backend stays authoritative.
-function validateServerDraft(d, base) {
+function validateServerDraft(d) {
   const e = {};
   if (!d.host || String(d.host).trim() === '') e.host = 'Required';
   if (!svInt(d.port, 1, 65535)) e.port = 'Port 1–65535';
   if (!(d.mtu === null || d.mtu === '' || svInt(d.mtu, 576, 1500))) e.mtu = 'MTU 576–1500 or empty';
   if (!String(d.dns).split(',').every((x) => svIsIP(x.trim()))) e.dns = 'Comma-separated IPs';
   if (!String(d.allowedIPs).split(',').every((x) => svIsCIDR(x.trim()))) e.allowedIPs = 'Comma-separated CIDRs';
-  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.x$/.exec(String(d.defaultAddress));
-  if (!m) {
+  if (!/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.x$/.test(String(d.defaultAddress))) {
     e.defaultAddress = 'Use a template like 10.8.0.x';
-  } else if (base && base.defaultAddress) {
-    const baseBase = String(base.defaultAddress).split('.').slice(0, 3).join('.');
-    if (`${m[1]}.${m[2]}.${m[3]}` !== baseBase) e.defaultAddress = `Must stay in ${baseBase}.x`;
   }
-  if (!svInt(d.persistentKeepalive, 0, 65535)) e.persistentKeepalive = 'Keepalive ≥ 0';
+  if (!svInt(d.persistentKeepalive, 0, 65535)) e.persistentKeepalive = 'Keepalive 0–65535';
   if (!svInt(d.jc, 1, 128)) e.jc = 'Jc 1–128';
   ['jmin', 'jmax', 's1', 's2', 's3', 's4'].forEach((k) => {
     if (!svInt(d[k], 0, 1280)) e[k] = `${k} 0–1280`;
@@ -613,7 +609,7 @@ new Vue({
     },
     serverClientErrors() {
       if (!this.serverDraft) return {};
-      return validateServerDraft(this.serverDraft, this.serverSettings);
+      return validateServerDraft(this.serverDraft);
     },
     serverValid() {
       return Object.keys(this.serverClientErrors).length === 0;
