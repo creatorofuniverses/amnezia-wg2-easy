@@ -1,9 +1,17 @@
 # Design: custom AllowedIPs / site-relay peers
 
-Status: **approved design, not built.** Created 2026-06-23. Round 2 of the fork-notes
-roadmap (`docs/superpowers/plans/2026-06-23-fork-notes-roadmap.md`). Supersedes the
-problem framing in `docs/custom-allowedips-site-peer.md` (kept as the original field
+Status: **approved design, not built — rev 2 (review-integrated).** Created
+2026-06-23. Round 2 of the fork-notes roadmap
+(`docs/superpowers/plans/2026-06-23-fork-notes-roadmap.md`). Supersedes the problem
+framing in `docs/custom-allowedips-site-peer.md` (kept as the original field
 report); this spec is the buildable design.
+
+**Rev 2** integrates the code review at
+`docs/superpowers/specs/2026-06-23-custom-allowedips-site-peer-design.review.md`:
+B1 (masq leak on non-bounce lifecycle paths), B2 (overlap enforced everywhere, not
+just the site-peer route), S1 (import the existing CIDR validators; resolve v6),
+S2 (replace-semantics decided + UI help text). All four were verified against
+source before integration.
 
 ## Goal
 
@@ -40,6 +48,31 @@ normal `/32`) already works today via `updateClientAddress` — this feature is 
   `10.20.0.0/24`, only one worked).
 - **Masq rules render into PostUp/PostDown** (not a separate runtime iptables
   call), consistent with the existing hook model.
+- **Site-peer lifecycle is bounce-aware (B1):** because masq rules live in
+  PostUp/PostDown and only run on `wg-quick up`/`down`, *every* path that adds or
+  removes a site peer from the live config must bounce — not just
+  `setClientSitePeer`, but also enable/disable/delete of a site peer. Otherwise a
+  disabled/deleted site peer's MASQUERADE rule orphans in the kernel (syncconf
+  never runs PostDown, and the re-rendered conf no longer contains the matching
+  `-D`). Normal clients keep the fast `syncconf` path.
+- **Overlap is enforced on every mutation (B2)**, not only the site-peer route:
+  `updateClientAddress` and `createClient`'s auto-assigned `/32` must pass the same
+  cross-peer overlap check. Otherwise a normal client's `/32` can be pointed inside
+  a site peer's subnet, re-creating the silent cryptokey-reassignment bug.
+- **Reuse the existing CIDR validators (S1):** `isValidCIDR` / `isValidCIDRList`
+  already exist and are exported from `serverSettings.js` (v4+v6 via `node:net`).
+  Import them; the only new validation logic is **overlap**. Frontend reuses the
+  existing `svIsCIDR` helper + `fieldErr()` plumbing + the `index.html` AllowedIPs
+  input/error pattern.
+- **Overlap is computed for v4 AND v6 uniformly (S1):** via integer (BigInt) network
+  ranges — no v6 hole. (`isValidCIDR` accepts v6 as well-formed, so a v4-only
+  overlap check would silently under-enforce.)
+- **AllowedIPs render is REPLACE, not merge (S2):** the field is the peer's
+  authoritative AllowedIPs list (WireGuard semantics). The peer's own `/32` is
+  **not** auto-merged; the UI help text says "this replaces the peer's /32 —
+  include it in the list if you still need it." Chosen over merge because merge
+  self-overlaps the common case (tunnel IP inside the carried subnet) and the
+  audience is advanced (gated behind the expander).
 - **UI:** an "Advanced / site peer" expander in the client row, collapsed by
   default so the simple-client UX is unchanged.
 
@@ -65,7 +98,9 @@ Two new optional fields on a client object:
 - **Server conf** (`:64`): replace the hardcoded
   `AllowedIPs = ${client.address}/32` with
   `AllowedIPs = ${client.allowedIPs && client.allowedIPs.trim() ? client.allowedIPs : `${client.address}/32`}`.
-  The `Table=auto` route is added automatically at `wg-quick up`.
+  This is **replace** semantics (S2): when set, `allowedIPs` is the peer's full
+  list and its own `/32` is not auto-included. The `Table=auto` route is added
+  automatically at `wg-quick up`.
 - **PostUp** (`defaultPostUp`): after the existing default-subnet masq rule, append
   one `iptables -t nat -A POSTROUTING -s <cidr> -o <device> -j MASQUERADE` per CIDR,
   for every **enabled** client with `siteMasquerade === true`. **PostDown**
@@ -82,42 +117,61 @@ Two new optional fields on a client object:
 
 ### 3. Validation (new `src/lib/clientValidation.js`, pure module)
 
-- `parseAllowedIPs(str): string[]` — split on comma, trim, drop empties.
-- Each CIDR well-formed — reuse the `isValidCIDR` logic (extract a shared helper or
-  duplicate the small function; prefer a shared `src/lib/netValidation.js` if clean,
-  else duplicate — decide in the plan).
-- **No overlap** across the effective AllowedIPs of **all** peers (a normal
-  client's effective set is its `${address}/32`; a site peer's is its parsed CIDR
-  list). Overlap = any two CIDRs where one contains the other or they intersect.
-  Compute via integer range comparison on the network (v4 first; v6 handling noted
-  below).
-- Returns a field-keyed errors object like `validateServerSettings`; the caller
-  throws 400 on non-empty.
+Depends on `serverSettings.js`'s exported `isValidCIDR` / `isValidCIDRList` (no new
+format code, no duplication — S1). Adds only the genuinely new logic:
 
-**IPv6 scope:** v4 is the required case (the RU-exit subnets are v4). v6 CIDRs
-should be *accepted as well-formed* but the overlap check may be v4-only in this
-pass if v6 range math is costly — **decide in the plan**; if v6 overlap is skipped,
-`log`/comment it explicitly (no silent gap).
+- `parseAllowedIPs(str): string[]` — split on comma, trim, drop empties.
+- Format: each CIDR passes the imported `isValidCIDR` (v4+v6).
+- `cidrRange(cidr): { lo: BigInt, hi: BigInt, v: 4|6 }` — network range as integers
+  (v4 and v6 both via `BigInt`, so overlap is computed uniformly — no v6 hole).
+- `overlaps(a, b)` — same family and `a.lo <= b.hi && b.lo <= a.hi`.
+- **No overlap** across the effective AllowedIPs of **all** peers (a normal client's
+  effective set is its `${address}/32`; a site peer's is its parsed list). The
+  checker takes the **candidate** peer's set and **all other** peers' effective sets
+  and rejects on any cross-peer overlap. (Within-peer overlap is not policed — a
+  single peer may legitimately list nested ranges; low value to reject.)
+- Returns a field-keyed errors object like `validateServerSettings`; callers throw
+  400 on non-empty.
+
+This module is the **single overlap authority** used by `setClientSitePeer`,
+`updateClientAddress`, and `createClient` (B2).
 
 ### 4. Apply path (`WireGuard.js`)
 
-New method `setClientSitePeer({ clientId, allowedIPs, siteMasquerade })`:
+**Shared apply helper (B1).** Factor the two reload strategies into one place:
 
-1. Load config, resolve client (own-property guard, like `getClient`).
-2. Build the candidate next state; run overlap+format validation against **all
-   other** peers' effective AllowedIPs. Throw 400 with `errors` on failure.
-3. Normalize: empty/whitespace `allowedIPs` → `null` and force
+- `__isSitePeer(client)` → `!!(client.allowedIPs && client.allowedIPs.trim())`.
+- `__reload({ bounce })` → if `bounce`, do `wg-quick down wg0` (on-disk conf) →
+  `saveConfig`-equivalent write → `wg-quick up wg0`; else `__saveConfig` +
+  `__syncConfig` (today's fast path). Rollback-on-failure is the caller's
+  responsibility (it holds the prev state), mirroring `updateServerSettings`.
+
+**`setClientSitePeer({ clientId, allowedIPs, siteMasquerade })`** (new):
+1. Resolve client (own-property guard, like `getClient`).
+2. Normalize: empty/whitespace `allowedIPs` → `null` and force
    `siteMasquerade: false` (masq only meaningful with a subnet).
-4. **Bounce with rollback**, mirroring `updateServerSettings`'s restart branch:
-   `wg-quick down wg0` (using on-disk conf) → assign fields + `saveConfig` →
-   `wg-quick up wg0`; on failure roll back to previous client state, `saveConfig`,
-   `wg-quick up` again, throw 500.
-5. Return `{ client, mustReimport: false }` (server-side only; the *site* peer's own
-   config — if it has one — would change, but the typical entry node is configured
-   out-of-band, so no client-facing reimport signal needed. Confirm in plan.)
+3. Validate the candidate set via `clientValidation` against **all other** peers'
+   effective AllowedIPs. Throw 400 with `errors` on overlap/format failure.
+4. Assign + **bounce with rollback** (`__reload({ bounce: true })`); on failure
+   restore prev client state, `__reload({ bounce: true })` again, throw 500.
+5. Return `{ client, mustReimport: false }` (server-side only; the entry node is
+   configured out-of-band, so no client-facing reimport signal — confirm in plan).
 
-Normal client CRUD (`createClient`, `updateClientName`, enable/disable, legacy
-toggle) is unchanged and stays on the `saveConfig → syncconf` path.
+**Bounce-aware lifecycle (B1).** `enableClient`, `disableClient`, `deleteClient`
+must bounce when the affected client **is or was** a site peer (its `allowedIPs` is
+non-empty), so its masq rule is added/removed by PostUp/PostDown rather than
+orphaned. Implementation: compute `bounce = __isSitePeer(client)` before the
+mutation, then `__reload({ bounce })`. Normal clients → `bounce: false`, unchanged
+fast path.
+
+**Overlap on address change (B2).** `updateClientAddress` runs the same
+`clientValidation` overlap check (effective set = `${address}/32`) against all
+other peers before assigning; rejects 400 on overlap. `createClient`'s
+auto-assigned `/32` is likewise checked against existing site-peer CIDRs (it
+already scans the server `/24` for a free host; extend that to also skip addresses
+that fall inside a site peer's subnet).
+
+`updateClientName` and the legacy toggle are untouched (no routing/masq impact).
 
 ### 5. Routes (`Server.js`)
 
@@ -130,20 +184,27 @@ errors (same shape the server-settings route already uses).
 
 - An **"Advanced / site peer"** expander per client row, collapsed by default
   (simple-client UX untouched). Reveals:
-  - AllowedIPs text input (placeholder `10.20.0.0/24, …`), comma-separated CIDRs.
+  - AllowedIPs text input (placeholder `10.20.0.0/24, …`), comma-separated CIDRs,
+    with **help text**: "Replaces the peer's /32 — include it in the list if you
+    still need it." (S2). Reuse the existing `svIsCIDR` client-side check + the
+    `index.html` AllowedIPs input + `fieldErr()` inline-error pattern already used
+    for the server-settings AllowedIPs field (S1) — minimal new plumbing.
   - "Masquerade this peer's traffic" checkbox (disabled/ignored when AllowedIPs is
     empty).
   - A Save button for the advanced fields → `api.setClientSitePeer(...)`.
-- On 400, surface the field error inline (reuse the server-settings error pattern).
+- On 400, surface the field error inline via the same `fieldErr()` plumbing.
 - A small **chip/icon marker** on rows that are site peers (AllowedIPs non-empty),
   so they're visually distinct from normal clients.
-- `i18n.js`: keys for the expander label, the masq checkbox, the placeholder, and
-  the overlap/format error messages (en first; other locales can fall back).
+- `i18n.js`: keys for the expander label, the masq checkbox, the placeholder, the
+  help text, and the overlap/format error messages (en first; other locales fall back).
 
 ## Components & boundaries
 
-- `clientValidation.js` — **pure**, no I/O: format + overlap. Independently testable.
+- `clientValidation.js` — **pure**, no I/O: format (imported validators) + overlap
+  (BigInt ranges). The single overlap authority. Independently testable.
 - `configRender.js` — **pure** string render; gains client-aware masq lines.
+- `WireGuard.js#__reload({ bounce })` — the one place that chooses syncconf vs
+  down/up; consumed by `setClientSitePeer` and the bounce-aware lifecycle methods.
 - `WireGuard.js#setClientSitePeer` — orchestration + bounce/rollback (I/O).
 - `Server.js` route — HTTP glue.
 - UI — presentation; one new API call.
@@ -152,10 +213,16 @@ errors (same shape the server-settings route already uses).
 
 - `clientValidation`: well-formed/malformed CIDR; single vs multi CIDR; overlap
   detection (exact dup, containment, partial intersection, `/32` vs subnet, no-overlap
-  pass); empty → normal.
-- `configRender`: server-conf AllowedIPs override present vs fallback `/32`; PostUp
-  emits one masq rule per CIDR only for `siteMasquerade` clients, none otherwise;
-  PostDown mirrors; disabled clients excluded.
+  pass); **v6 CIDR accepted AND v6 overlap actually computed** (S1 — assert, don't
+  assume); empty → normal.
+- `configRender`: server-conf AllowedIPs override present vs fallback `/32` (replace,
+  not merge — S2); PostUp emits one masq rule per CIDR only for `siteMasquerade`
+  clients, none otherwise; PostDown mirrors; disabled clients excluded.
+- **B1 — lifecycle bounce:** disabling/deleting a site peer takes the bounce path
+  (assert `__isSitePeer`-driven `bounce: true`), so its masq rule is removed via
+  PostDown rather than orphaned; a normal client stays `bounce: false`.
+- **B2 — overlap on address change:** `updateClientAddress` rejects an address that
+  lands inside an existing site peer's subnet; `createClient` skips such addresses.
 - Bounce/rollback, route materialization, and UI: manual verification (app
   convention), with an acceptance walk-through (below).
 
