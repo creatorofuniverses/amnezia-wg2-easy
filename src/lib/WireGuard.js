@@ -12,6 +12,7 @@ const ShareString = require('./awgShareString');
 const { stripImitationKeys } = require('./stripImitationKeys');
 const ServerSettings = require('./serverSettings');
 const ConfigRender = require('./configRender');
+const ClientValidation = require('./clientValidation');
 
 const {
   WG_PATH,
@@ -174,7 +175,7 @@ module.exports = class WireGuard {
       postUp: WG_POST_UP,
       preDown: WG_PRE_DOWN,
       postDown: WG_POST_DOWN,
-    });
+    }, config.clients);
     const result = ConfigRender.renderServerConf(config.server, config.clients, hooks, IMITATE_PROTOCOL);
 
     debug('Config saving...');
@@ -191,6 +192,24 @@ module.exports = class WireGuard {
     debug('Config syncing...');
     await Util.exec('wg syncconf wg0 <(wg-quick strip wg0)');
     debug('Config synced.');
+  }
+
+  // Apply a config mutation with a full tunnel bounce + rollback.
+  // `mutate(config)` changes the shared config in place and returns a rollback fn.
+  // Order: down (tears down OLD on-disk firewall rules) -> mutate+save -> up.
+  async __applyWithBounce(mutate) {
+    const config = await this.getConfig();
+    await Util.exec('wg-quick down wg0').catch(() => { });
+    const rollback = mutate(config);
+    await this.__saveConfig(config);
+    try {
+      await Util.exec('wg-quick up wg0');
+    } catch (err) {
+      rollback();
+      await this.__saveConfig(config);
+      await Util.exec('wg-quick up wg0').catch(() => { });
+      throw Object.assign(new Error(`Failed to apply site-peer change: ${err.message}`), { statusCode: 500 });
+    }
   }
 
   async getServerSettings() {
@@ -300,6 +319,7 @@ module.exports = class WireGuard {
       createdAt: new Date(client.createdAt),
       updatedAt: new Date(client.updatedAt),
       allowedIPs: client.allowedIPs,
+      siteMasquerade: client.siteMasquerade === true,
       downloadableConfig: 'privateKey' in client,
       persistentKeepalive: null,
       latestHandshakeAt: null,
@@ -387,17 +407,17 @@ module.exports = class WireGuard {
     const publicKey = await Util.exec(`echo ${privateKey} | wg pubkey`);
     const preSharedKey = await Util.exec('wg genpsk');
 
-    // Calculate next IP
+    // Calculate next IP (skip taken addresses and any that fall inside a site peer's subnet)
     let address;
+    const siteOthers = Object.entries(config.clients)
+      .filter(([, c]) => ClientValidation.isSitePeer(c))
+      .map(([id, c]) => ({ clientId: id, name: c.name, cidrs: ClientValidation.effectiveCidrs(c) }));
     for (let i = 2; i < 255; i++) {
-      const client = Object.values(config.clients).find((client) => {
-        return client.address === WG_DEFAULT_ADDRESS.replace('x', i);
-      });
-
-      if (!client) {
-        address = WG_DEFAULT_ADDRESS.replace('x', i);
-        break;
-      }
+      const candidate = WG_DEFAULT_ADDRESS.replace('x', i);
+      if (Object.values(config.clients).some((c) => c.address === candidate)) continue;
+      if (ClientValidation.findOverlap([`${candidate}/32`], siteOthers)) continue;
+      address = candidate;
+      break;
     }
 
     if (!address) {
@@ -419,6 +439,8 @@ module.exports = class WireGuard {
 
       enabled: true,
       legacy: false,
+      allowedIPs: null,
+      siteMasquerade: false,
     };
 
     config.clients[id] = client;
@@ -428,30 +450,57 @@ module.exports = class WireGuard {
     return client;
   }
 
-  async deleteClient({ clientId }) {
-    const config = await this.getConfig();
-
-    if (config.clients[clientId]) {
-      delete config.clients[clientId];
-      await this.saveConfig();
-    }
-  }
-
   async enableClient({ clientId }) {
     const client = await this.getClient({ clientId });
-
+    if (ClientValidation.isSitePeer(client)) {
+      await this.__applyWithBounce(() => {
+        const prev = client.enabled;
+        client.enabled = true;
+        client.updatedAt = new Date();
+        return () => {
+          client.enabled = prev;
+        };
+      });
+      return;
+    }
     client.enabled = true;
     client.updatedAt = new Date();
-
     await this.saveConfig();
   }
 
   async disableClient({ clientId }) {
     const client = await this.getClient({ clientId });
-
+    if (ClientValidation.isSitePeer(client)) {
+      await this.__applyWithBounce(() => {
+        const prev = client.enabled;
+        client.enabled = false;
+        client.updatedAt = new Date();
+        return () => {
+          client.enabled = prev;
+        };
+      });
+      return;
+    }
     client.enabled = false;
     client.updatedAt = new Date();
+    await this.saveConfig();
+  }
 
+  async deleteClient({ clientId }) {
+    const config = await this.getConfig();
+    const client = config.clients[clientId];
+    if (!client) return;
+    if (ClientValidation.isSitePeer(client)) {
+      await this.__applyWithBounce((cfg) => {
+        const removed = cfg.clients[clientId];
+        delete cfg.clients[clientId];
+        return () => {
+          cfg.clients[clientId] = removed;
+        };
+      });
+      return;
+    }
+    delete config.clients[clientId];
     await this.saveConfig();
   }
 
@@ -464,6 +513,36 @@ module.exports = class WireGuard {
     await this.saveConfig();
   }
 
+  async setClientSitePeer({ clientId, allowedIPs, siteMasquerade }) {
+    const config = await this.getConfig();
+    const client = await this.getClient({ clientId });
+
+    const norm = (typeof allowedIPs === 'string' && allowedIPs.trim()) ? allowedIPs.trim() : null;
+    const masq = norm ? !!siteMasquerade : false;
+
+    const others = Object.entries(config.clients)
+      .filter(([id]) => id !== clientId)
+      .map(([id, c]) => ({ clientId: id, name: c.name, cidrs: ClientValidation.effectiveCidrs(c) }));
+    const errors = ClientValidation.validateClientAllowedIPs(norm, others);
+    if (Object.keys(errors).length > 0) {
+      throw Object.assign(new Error('Invalid AllowedIPs'), { statusCode: 400, errors });
+    }
+
+    const prevAllowed = client.allowedIPs;
+    const prevMasq = client.siteMasquerade;
+    await this.__applyWithBounce(() => {
+      client.allowedIPs = norm;
+      client.siteMasquerade = masq;
+      client.updatedAt = new Date();
+      return () => {
+        client.allowedIPs = prevAllowed;
+        client.siteMasquerade = prevMasq;
+      };
+    });
+
+    return { client, mustReimport: false };
+  }
+
   async updateClientName({ clientId, name }) {
     const client = await this.getClient({ clientId });
 
@@ -474,15 +553,22 @@ module.exports = class WireGuard {
   }
 
   async updateClientAddress({ clientId, address }) {
+    const config = await this.getConfig();
     const client = await this.getClient({ clientId });
 
     if (!Util.isValidIPv4(address)) {
       throw new ServerError(`Invalid Address: ${address}`, 400);
     }
+    const others = Object.entries(config.clients)
+      .filter(([id]) => id !== clientId)
+      .map(([id, c]) => ({ clientId: id, name: c.name, cidrs: ClientValidation.effectiveCidrs(c) }));
+    const conflict = ClientValidation.findOverlap([`${address}/32`], others);
+    if (conflict) {
+      throw new ServerError(`Address ${address} overlaps ${conflict.with}`, 400);
+    }
 
     client.address = address;
     client.updatedAt = new Date();
-
     await this.saveConfig();
   }
 
