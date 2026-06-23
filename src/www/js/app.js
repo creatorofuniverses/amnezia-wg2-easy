@@ -410,6 +410,17 @@ new Vue({
         .catch((err) => alert(err.message || err.toString()))
         .finally(() => this.refresh().catch(console.error));
     },
+    saveClientSitePeer(client, allowedIPs, siteMasquerade) {
+      // client-side guard mirrors the server (svIsCIDR already exists)
+      const list = String(allowedIPs || '').split(',').map((s) => s.trim()).filter(Boolean);
+      if (list.length && !list.every(svIsCIDR)) {
+        alert(this.$t('allowedIPsInvalid'));
+        return;
+      }
+      this.api.setClientSitePeer({ clientId: client.id, allowedIPs, siteMasquerade })
+        .catch((err) => alert((err.fieldErrors && err.fieldErrors.allowedIPs) || err.message || err.toString()))
+        .finally(() => this.refresh().catch(console.error));
+    },
     toggleTheme() {
       const themes = ['light', 'dark', 'auto'];
       const currentIndex = themes.indexOf(this.uiTheme);

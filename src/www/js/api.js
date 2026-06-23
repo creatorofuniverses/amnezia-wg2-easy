@@ -159,6 +159,14 @@ class API {
     });
   }
 
+  async setClientSitePeer({ clientId, allowedIPs, siteMasquerade }) {
+    return this.call({
+      method: 'put',
+      path: `/wireguard/client/${clientId}/allowedips`,
+      body: { allowedIPs, siteMasquerade },
+    });
+  }
+
   async getClientShareString({ clientId }) {
     const res = await fetch(`./api/wireguard/client/${clientId}/share-string`);
     if (!res.ok) {

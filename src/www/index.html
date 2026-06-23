@@ -622,6 +622,33 @@
                           {{!uiTrafficStats ? " · " : ""}}{{new Date(client.latestHandshakeAt) | timeago}}
                         </span>
                       </div>
+
+                      <!-- Advanced / site peer expander -->
+                      <details class="text-xs mt-1">
+                        <summary class="cursor-pointer text-gray-400 dark:text-neutral-500 select-none">
+                          {{ $t('advancedSitePeer') }}
+                          <span v-if="client.allowedIPs" class="ml-1 inline-block px-1.5 rounded awg-chip text-gray-600 dark:text-neutral-400" style="font-size:10px;padding:1px 6px">site</span>
+                        </summary>
+                        <div class="mt-2 flex flex-col gap-1.5">
+                          <input
+                            :value="client.allowedIPs || ''"
+                            @input="client._allowedIPsDraft = $event.target.value"
+                            :placeholder="$t('allowedIPsPlaceholder')"
+                            class="rounded border-2 dark:bg-neutral-700 border-gray-100 dark:border-neutral-600 focus:border-gray-200 dark:focus:border-neutral-500 outline-none text-black dark:text-neutral-300 awg-mono px-1 py-0.5 w-48" />
+                          <p class="text-gray-400 dark:text-neutral-500">{{ $t('allowedIPsHelp') }}</p>
+                          <label class="flex items-center gap-1.5 cursor-pointer text-gray-500 dark:text-neutral-400">
+                            <input type="checkbox"
+                              :checked="client.siteMasquerade"
+                              @change="client._masqDraft = $event.target.checked" />
+                            {{ $t('masqueradePeer') }}
+                          </label>
+                          <button
+                            @click="saveClientSitePeer(client,
+                              client._allowedIPsDraft !== undefined ? client._allowedIPsDraft : (client.allowedIPs || ''),
+                              client._masqDraft !== undefined ? client._masqDraft : !!client.siteMasquerade)"
+                            class="awg-btn self-start py-0.5 px-2 text-xs">{{ $t('save') }}</button>
+                        </div>
+                      </details>
                     </div>
 
                     <!-- Info -->
