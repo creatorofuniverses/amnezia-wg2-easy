@@ -77,7 +77,13 @@ module.exports.H3 = parseHParam(process.env.H3, getRandomHRangeIn(H_SPACE_MIN + 
 module.exports.H4 = parseHParam(process.env.H4, getRandomHRangeIn(H_SPACE_MIN + 3 * H_QUADRANT_SIZE, H_SPACE_MAX));
 
 // CPS signatures (client-only, AWG 2.0)
-module.exports.I1 = process.env.I1 || null;
+// Legacy/compatibility I1: a DNS-shaped CPS signature (an iCloud.com query/response,
+// repeated). Weaker than a freshly-generated I1 but a sane non-empty default for
+// older clients — "better than nothing". Enabled by I1_COMPAT=true ONLY when no
+// explicit I1 is given (explicit I1 always wins).
+const LEGACY_I1_VALUE = '<r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>';
+const I1_COMPAT = (process.env.I1_COMPAT || '').toLowerCase() === 'true';
+module.exports.I1 = process.env.I1 || (I1_COMPAT ? LEGACY_I1_VALUE : null);
 module.exports.I2 = process.env.I2 || null;
 module.exports.I3 = process.env.I3 || null;
 module.exports.I4 = process.env.I4 || null;

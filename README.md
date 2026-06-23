@@ -142,6 +142,7 @@ These options can be configured by setting environment variables using `-e KEY="
 | `I3` | - | - | CPS signature line 3 (client-only). |
 | `I4` | - | - | CPS signature line 4 (client-only). |
 | `I5` | - | - | CPS signature line 5 (client-only). |
+| `I1_COMPAT` | `false` | `true` | Legacy/compatibility mode: when `true` **and** no explicit `I1` is set, seeds a baked-in DNS-shaped `I1` (an iCloud.com query/response) into the server config — weaker than a fresh `I1` but a non-empty default for older clients. An explicit `I1` always takes precedence. Off by default; only affects newly-seeded `wg0.json`. |
 | `IMITATE_PROTOCOL` | `none` | `quic` | Shape obfuscation to resemble a real protocol (`none\|quic\|dns\|stun\|sip`), applied to the server **and** every generated client config. See [Native Traffic Imitation](#native-traffic-imitation). |
 | `RESPONDER` | `false` | `true` | Run the Go active-probe responder on `WG_PORT`. Requires `IMITATE_PROTOCOL != none`, `NET_ADMIN` + `NET_RAW`. See [Active-probe responder](#active-probe-responder-responder). |
 | `QUIC_HANDSHAKE` | `true` | `false` | QUIC responder mode: `true` = full TLS-1.3 handshake, `false` = Version-Negotiation only. Only meaningful with `IMITATE_PROTOCOL=quic` + `RESPONDER=true`. |
