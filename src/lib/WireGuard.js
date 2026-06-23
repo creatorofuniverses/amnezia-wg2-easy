@@ -540,7 +540,7 @@ module.exports = class WireGuard {
       };
     });
 
-    return { client, mustReimport: false };
+    return { client };
   }
 
   async updateClientName({ clientId, name }) {

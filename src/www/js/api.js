@@ -160,11 +160,26 @@ class API {
   }
 
   async setClientSitePeer({ clientId, allowedIPs, siteMasquerade }) {
-    return this.call({
+    const res = await fetch(`./api/wireguard/client/${clientId}/allowedips`, {
       method: 'put',
-      path: `/wireguard/client/${clientId}/allowedips`,
-      body: { allowedIPs, siteMasquerade },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowedIPs, siteMasquerade }),
     });
+    let body = {};
+    try {
+      body = await res.json();
+    } catch (e) {
+      // no/non-json body
+    }
+    if (!res.ok) {
+      if (res.status === 400) {
+        const err = new Error(body.statusMessage || body.message || 'Validation failed');
+        err.fieldErrors = (body.data && body.data.errors) || {};
+        throw err;
+      }
+      throw new Error(body.message || body.error || res.statusText);
+    }
+    return body;
   }
 
   async getClientShareString({ clientId }) {
