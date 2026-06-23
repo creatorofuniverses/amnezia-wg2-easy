@@ -21,6 +21,7 @@ Fork of the archived [amnezia-wg-easy](https://github.com/spcfox/amnezia-wg-easy
 * Multilanguage Support
 * UI_TRAFFIC_STATS (default off)
 * **AmneziaWG 2.0**: S3/S4 padding, H1-H4 ranges, I1-I5 CPS signatures
+* **Site peers / custom AllowedIPs**: clients can be assigned custom AllowedIPs (comma-separated CIDRs) and an optional per-peer masquerade toggle in the web UI's Advanced / site peer panel — enabling relay and site-to-site topologies. **Note:** site-peer masquerade requires the default `PostUp` / `PostDown` hooks; custom `WG_POST_UP` or `WG_POST_DOWN` env overrides will suppress masquerading.
 
 ## Requirements
 

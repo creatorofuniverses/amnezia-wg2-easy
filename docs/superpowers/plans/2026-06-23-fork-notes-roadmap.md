@@ -40,17 +40,18 @@ own plan/spec under `docs/superpowers/`.
 
 → Detailed plan: `docs/superpowers/plans/2026-06-23-round1-mtu-and-legacy-i1.md`
 
-### Round 2 — feature (later)
-**#3 custom AllowedIPs / site-relay peers.** Doc already scopes it well:
-- Data model: optional per-client `allowedIps` in `wg0.json` (vestigial var at
-  `WireGuard.js:323`).
-- Render: override at `configRender.js:64`, else fall back to `${client.address}/32`.
-- Route: **free** — `wg-quick`/`Table=auto` adds it; no route code.
-- Real work: **MASQUERADE** for sources outside `server.defaultAddress/24`, and
-  **overlap validation** (non-unique AllowedIPs silently steal return traffic).
-- Gate behind an "advanced / site peer" flag so simple-client UX is unchanged.
+### Round 2 — feature (✅ DONE 2026-06-24)
+**#3 custom AllowedIPs / site-relay peers.** Implemented: per-client `allowedIps`
+(comma-separated CIDRs) + `siteMasquerade` toggle, editable in the web UI, with
+overlap validation and tunnel-bounce apply path.
 
-Not urgent — workaround exists. Write a full plan/spec when picked up.
+**Caveat:** site-peer masquerade relies on the default `PostUp` / `PostDown` hooks
+(which add the masquerade rules). Setting `WG_POST_UP` or `WG_POST_DOWN` env
+overrides suppresses the default hooks and therefore disables site masquerading —
+the two features are mutually exclusive.
+
+→ Detailed plan: `docs/superpowers/plans/2026-06-23-custom-allowedips-site-peer.md`
+→ Design spec: `docs/superpowers/specs/2026-06-23-custom-allowedips-site-peer-design.md`
 
 ### Round 3 — investigation, not a fix (later)
 **#4 responder hardening.** The doc's own conclusion: **causality is unknown /

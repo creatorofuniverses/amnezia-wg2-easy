@@ -1,8 +1,6 @@
 # Feature note: custom AllowedIPs / site-relay peers
 
-Status: **idea / scoped, not built.** Seeded 2026-06-22 from a real
-entry→exit relay deployment (triple-awg-xray RU-exit migration). Pick up here when
-adding the feature.
+Status: **implemented 2026-06-24.** See the implementation plan at `docs/superpowers/plans/2026-06-23-custom-allowedips-site-peer.md` and the design spec at `docs/superpowers/specs/2026-06-23-custom-allowedips-site-peer-design.md`. This document is the original field report.
 
 ## Problem
 
