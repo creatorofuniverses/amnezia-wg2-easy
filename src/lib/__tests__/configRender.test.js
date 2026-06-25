@@ -116,3 +116,34 @@ test('renderDefaultHooks emits masq rule only for siteMasquerade peers', () => {
   assert.ok(!hooks.postUp.includes('10.40.0.0/24'), 'no masq for disabled peer');
   assert.ok(hooks.postDown.includes('-D POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE'), 'postDown mirrors');
 });
+
+// Regression: site-masq rules leaked + duplicated because wg-quick runs the
+// hooks as one ';'-joined line under `set -e`. A bare `-D` for an absent rule
+// aborted the rest of the chain (skipping the site rule, rendered last), and a
+// bare `-A` re-appended on every `up`. Rules must be idempotent + chain-safe.
+test('firewall rules are idempotent and chain-safe', () => {
+  const clients = {
+    a: {
+      enabled: true, name: 'a', publicKey: 'k', address: '10.8.0.2', allowedIPs: '10.20.0.0/24', siteMasquerade: true,
+    },
+  };
+  const { postUp, postDown } = R.renderDefaultHooks(SERVER, { device: 'eth0' }, clients);
+
+  // Adds are check-then-add: a repeated `up` can't stack a duplicate rule.
+  assert.ok(
+    postUp.includes('iptables -t nat -C POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE'),
+    'site masq add is guarded by -C',
+  );
+  assert.ok(
+    postUp.includes('iptables -t nat -C POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE'),
+    'default masq add is guarded by -C',
+  );
+
+  // Deletes loop until gone (clears pre-existing duplicates) and `|| break`
+  // keeps one failure from aborting the rest of the set -e chain.
+  assert.ok(
+    postDown.includes('while iptables -t nat -C POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE 2>/dev/null; do iptables -t nat -D POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE || break; done'),
+    'site masq delete is a self-healing loop',
+  );
+  assert.ok(postDown.includes('|| break; done'), 'deletes never abort the chain');
+});

@@ -1,26 +1,36 @@
 'use strict';
 
-const siteMasqRules = (clients, device, op) => Object.values(clients || {})
+// wg-quick runs PostUp/PostDown as a single ';'-joined line under `set -e`, so a
+// bare `iptables -D` for an already-absent rule aborts the rest of the chain
+// (silently skipping every rule after it — notably the site-masq rule, rendered
+// last), and a bare `iptables -A` re-appends on every `up`. Render each rule
+// idempotently and self-healing instead: add only if missing, delete every copy
+// without letting one failure abort the chain.
+const addRule = (table, rule) => {
+  const ipt = `iptables${table ? ` -t ${table}` : ''}`;
+  return `${ipt} -C ${rule} 2>/dev/null || ${ipt} -A ${rule};`;
+};
+const delRule = (table, rule) => {
+  const ipt = `iptables${table ? ` -t ${table}` : ''}`;
+  return `while ${ipt} -C ${rule} 2>/dev/null; do ${ipt} -D ${rule} || break; done;`;
+};
+
+const siteMasqRules = (clients, device, mk) => Object.values(clients || {})
   .filter((c) => c.enabled && c.siteMasquerade && c.allowedIPs)
   .flatMap((c) => c.allowedIPs.split(',').map((s) => s.trim()).filter(Boolean)
-    .map((cidr) => `iptables -t nat -${op} POSTROUTING -s ${cidr} -o ${device} -j MASQUERADE;`))
+    .map((cidr) => mk('nat', `POSTROUTING -s ${cidr} -o ${device} -j MASQUERADE`)))
   .join(' ');
 
-const defaultPostUp = (server, device, clients) => `
-iptables -t nat -A POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE;
-iptables -A INPUT -p udp -m udp --dport ${server.port} -j ACCEPT;
-iptables -A FORWARD -i wg0 -j ACCEPT;
-iptables -A FORWARD -o wg0 -j ACCEPT;
-${siteMasqRules(clients, device, 'A')}
-`.split('\n').join(' ');
+const defaultHooks = (server, device, clients, mk) => [
+  mk('nat', `POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE`),
+  mk('', `INPUT -p udp -m udp --dport ${server.port} -j ACCEPT`),
+  mk('', 'FORWARD -i wg0 -j ACCEPT'),
+  mk('', 'FORWARD -o wg0 -j ACCEPT'),
+  siteMasqRules(clients, device, mk),
+].filter(Boolean).join(' ');
 
-const defaultPostDown = (server, device, clients) => `
-iptables -t nat -D POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE;
-iptables -D INPUT -p udp -m udp --dport ${server.port} -j ACCEPT;
-iptables -D FORWARD -i wg0 -j ACCEPT;
-iptables -D FORWARD -o wg0 -j ACCEPT;
-${siteMasqRules(clients, device, 'D')}
-`.split('\n').join(' ');
+const defaultPostUp = (server, device, clients) => defaultHooks(server, device, clients, addRule);
+const defaultPostDown = (server, device, clients) => defaultHooks(server, device, clients, delRule);
 
 const pick = (override, fallback) => (typeof override === 'string' && override !== '' ? override : fallback);
 
