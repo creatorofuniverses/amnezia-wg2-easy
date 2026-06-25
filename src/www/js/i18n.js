@@ -36,6 +36,7 @@ const messages = { // eslint-disable-line no-unused-vars
     allowedIPsInvalid: 'AllowedIPs must be comma-separated CIDRs.',
     masqueradePeer: "Masquerade this peer's traffic",
     save: 'Save',
+    saving: 'Saving…',
     madeBy: 'Made by',
     donate: 'Donate',
     toggleCharts: 'Show/hide Charts',

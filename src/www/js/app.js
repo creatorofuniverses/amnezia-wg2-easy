@@ -109,6 +109,7 @@ new Vue({
 
     clients: null,
     clientsPersist: {},
+    sitePeerSaving: {}, // clientId -> bool, in-flight site-peer save (survives the 1s refresh)
     clientDelete: null,
     clientCreate: null,
     clientCreateName: '',
@@ -433,9 +434,23 @@ new Vue({
         alert(this.$t('allowedIPsInvalid'));
         return;
       }
+      // Flag in-flight so the Save button shows feedback through the ~2s bounce.
+      this.$set(this.sitePeerSaving, client.id, true);
       this.api.setClientSitePeer({ clientId: client.id, allowedIPs, siteMasquerade })
         .catch((err) => alert((err.fieldErrors && err.fieldErrors.allowedIPs) || err.message || err.toString()))
-        .finally(() => this.refresh().catch(console.error));
+        .finally(() => {
+          this.$set(this.sitePeerSaving, client.id, false);
+          this.refresh().catch(console.error);
+        });
+    },
+    // Site-peer Save is enabled only when the draft differs from what's saved.
+    sitePeerDirty(client) {
+      const draftIp = (client._allowedIPsDraft || '').trim();
+      const curIp = client.allowedIPs || '';
+      return draftIp !== curIp || !!client._masqDraft !== !!client.siteMasquerade;
+    },
+    isSitePeerSaving(client) {
+      return !!this.sitePeerSaving[client.id];
     },
     toggleTheme() {
       const themes = ['light', 'dark', 'auto'];

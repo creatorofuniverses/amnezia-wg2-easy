@@ -204,6 +204,9 @@
   .awg-btn-primary.is-disabled, .awg-btn-primary:disabled { background-color: var(--surface-variant) !important; color: var(--on-surface-variant) !important; }
   .awg-btn-tonal { background-color: var(--primary-container) !important; color: var(--on-primary-container) !important; border: none !important; border-radius: var(--radius-input); font-weight: var(--weight-semibold); }
   .awg-btn-text { background: transparent !important; color: var(--on-surface-variant) !important; }
+  /* In-flight site-peer save: pulse through the ~2s tunnel bounce so it's clear something happened. */
+  .awg-btn.is-saving { animation: awg-pulse 1s ease-in-out infinite; }
+  @keyframes awg-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
   /* Icon buttons */
   .awg-icon-btn { border-radius: var(--radius-input); padding: .5rem; background: transparent; color: var(--on-surface-variant); transition: background-color .15s ease, color .15s ease; }
@@ -642,7 +645,9 @@
                           </label>
                           <button
                             @click="saveClientSitePeer(client, client._allowedIPsDraft, client._masqDraft)"
-                            class="awg-btn self-start py-0.5 px-2 text-xs">{{ $t('save') }}</button>
+                            :disabled="!sitePeerDirty(client) || isSitePeerSaving(client)"
+                            :class="{ 'is-saving': isSitePeerSaving(client) }"
+                            class="awg-btn awg-btn-primary self-start py-0.5 px-2 text-xs">{{ isSitePeerSaving(client) ? $t('saving') : $t('save') }}</button>
                         </div>
                       </details>
                     </div>
