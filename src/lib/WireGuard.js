@@ -120,8 +120,8 @@ module.exports = class WireGuard {
         });
 
         await this.__saveConfig(config);
-        await Util.exec('wg-quick down wg0').catch(() => { });
-        await Util.exec('wg-quick up wg0').catch((err) => {
+        await this.__tunnelExec('down', 'bootstrap').catch(() => { });
+        await this.__tunnelExec('up', 'bootstrap').catch((err) => {
           if (err && err.message && err.message.includes('Cannot find device "wg0"')) {
             throw new Error('WireGuard exited with the error: Cannot find device "wg0"\nThis usually means that your host\'s kernel does not support WireGuard!');
           }
@@ -133,7 +133,7 @@ module.exports = class WireGuard {
         // await Util.exec('iptables -A INPUT -p udp -m udp --dport 51820 -j ACCEPT');
         // await Util.exec('iptables -A FORWARD -i wg0 -j ACCEPT');
         // await Util.exec('iptables -A FORWARD -o wg0 -j ACCEPT');
-        await this.__syncConfig();
+        await this.__syncConfig('bootstrap');
 
         return config;
       });
@@ -165,7 +165,7 @@ module.exports = class WireGuard {
   async saveConfig() {
     const config = await this.getConfig();
     await this.__saveConfig(config);
-    await this.__syncConfig();
+    await this.__syncConfig('saveConfig');
   }
 
   async __saveConfig(config) {
@@ -188,26 +188,56 @@ module.exports = class WireGuard {
     debug('Config saved.');
   }
 
-  async __syncConfig() {
+  async __syncConfig(reason = 'sync') {
     debug('Config syncing...');
-    await Util.exec('wg syncconf wg0 <(wg-quick strip wg0)');
+    await this.__tunnelExec('sync', reason);
     debug('Config synced.');
+  }
+
+  // Round 3 / P1 instrumentation: run a tunnel-affecting command, emitting a
+  // timestamped, reason-tagged event line to stdout (lands in `docker logs`)
+  // before and after. This is the Node half of the "timestamped logging on both
+  // sides" the responder-hardening P1 calls for — every `wg-quick down/up` (the
+  // only things that flap the tunnel) and every `syncconf` (the no-flap path) is
+  // now attributable to a caller and a wall-clock instant, so a field flap can be
+  // ordered against the responder's `netlink i/o timeout`. Returns Util.exec's
+  // promise unchanged so each call site keeps its own .catch / rollback.
+  async __tunnelExec(op, reason) {
+    const cmd = op === 'sync'
+      ? 'wg syncconf wg0 <(wg-quick strip wg0)'
+      : `wg-quick ${op} wg0`;
+    const t0 = process.hrtime.bigint();
+    // eslint-disable-next-line no-console
+    console.log(`tunnel evt=begin op=${op} reason=${reason} ts=${new Date().toISOString()} pid=${process.pid}`);
+    try {
+      const out = await Util.exec(cmd);
+      const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+      // eslint-disable-next-line no-console
+      console.log(`tunnel evt=ok op=${op} reason=${reason} ts=${new Date().toISOString()} ms=${ms.toFixed(0)}`);
+      return out;
+    } catch (err) {
+      const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+      const msg = String((err && err.message) || err).split('\n')[0];
+      // eslint-disable-next-line no-console
+      console.log(`tunnel evt=err op=${op} reason=${reason} ts=${new Date().toISOString()} ms=${ms.toFixed(0)} msg=${msg}`);
+      throw err;
+    }
   }
 
   // Apply a config mutation with a full tunnel bounce + rollback.
   // `mutate(config)` changes the shared config in place and returns a rollback fn.
   // Order: down (tears down OLD on-disk firewall rules) -> mutate+save -> up.
-  async __applyWithBounce(mutate) {
+  async __applyWithBounce(mutate, reason = 'site-peer') {
     const config = await this.getConfig();
-    await Util.exec('wg-quick down wg0').catch(() => { });
+    await this.__tunnelExec('down', reason).catch(() => { });
     const rollback = mutate(config);
     await this.__saveConfig(config);
     try {
-      await Util.exec('wg-quick up wg0');
+      await this.__tunnelExec('up', reason);
     } catch (err) {
       rollback();
       await this.__saveConfig(config);
-      await Util.exec('wg-quick up wg0').catch(() => { });
+      await this.__tunnelExec('up', `${reason}-rollback`).catch(() => { });
       throw Object.assign(new Error(`Failed to apply site-peer change: ${err.message}`), { statusCode: 500 });
     }
   }
@@ -260,7 +290,7 @@ module.exports = class WireGuard {
 
     if (diff.needsRestart) {
       // Tear down using the CURRENTLY on-disk conf (live firewall rules) BEFORE writing.
-      await Util.exec('wg-quick down wg0').catch(() => { });
+      await this.__tunnelExec('down', 'settings').catch(() => { });
     }
 
     Object.assign(config.server, patch);
@@ -268,16 +298,16 @@ module.exports = class WireGuard {
 
     if (diff.needsRestart) {
       try {
-        await Util.exec('wg-quick up wg0');
+        await this.__tunnelExec('up', 'settings');
       } catch (err) {
         // Roll back so a bad value never strands the server offline.
         Object.assign(config.server, prev);
         await this.__saveConfig(config);
-        await Util.exec('wg-quick up wg0').catch(() => { });
+        await this.__tunnelExec('up', 'settings-rollback').catch(() => { });
         throw Object.assign(new Error(`Failed to apply settings: ${err.message}`), { statusCode: 500 });
       }
     } else {
-      await this.__syncConfig();
+      await this.__syncConfig('settings-nobounce');
     }
 
     return { settings: await this.getServerSettings(), restarted: diff.needsRestart, mustReimport: diff.mustReimport };
@@ -291,17 +321,17 @@ module.exports = class WireGuard {
     const publicKey = await Util.exec(`echo ${privateKey} | wg pubkey`, {
       log: 'echo ***hidden*** | wg pubkey',
     });
-    await Util.exec('wg-quick down wg0').catch(() => { });
+    await this.__tunnelExec('down', 'regen-key').catch(() => { });
     config.server.privateKey = privateKey;
     config.server.publicKey = publicKey;
     await this.__saveConfig(config);
     try {
-      await Util.exec('wg-quick up wg0');
+      await this.__tunnelExec('up', 'regen-key');
     } catch (err) {
       config.server.privateKey = prevPrivateKey;
       config.server.publicKey = prevPublicKey;
       await this.__saveConfig(config);
-      await Util.exec('wg-quick up wg0').catch(() => { });
+      await this.__tunnelExec('up', 'regen-key-rollback').catch(() => { });
       throw Object.assign(new Error(`Failed to regenerate keypair: ${err.message}`), { statusCode: 500 });
     }
     return { publicKey, mustReimport: true };
@@ -460,7 +490,7 @@ module.exports = class WireGuard {
         return () => {
           client.enabled = prev;
         };
-      });
+      }, 'sitepeer-enable');
       return;
     }
     client.enabled = true;
@@ -478,7 +508,7 @@ module.exports = class WireGuard {
         return () => {
           client.enabled = prev;
         };
-      });
+      }, 'sitepeer-disable');
       return;
     }
     client.enabled = false;
@@ -497,7 +527,7 @@ module.exports = class WireGuard {
         return () => {
           cfg.clients[clientId] = removed;
         };
-      });
+      }, 'sitepeer-delete');
       return;
     }
     delete config.clients[clientId];
@@ -538,7 +568,7 @@ module.exports = class WireGuard {
         client.allowedIPs = prevAllowed;
         client.siteMasquerade = prevMasq;
       };
-    });
+    }, 'sitepeer-set');
 
     return { client };
   }
@@ -574,7 +604,7 @@ module.exports = class WireGuard {
 
   // Shutdown wireguard
   async Shutdown() {
-    await Util.exec('wg-quick down wg0').catch(() => { });
+    await this.__tunnelExec('down', 'shutdown').catch(() => { });
   }
 
 };

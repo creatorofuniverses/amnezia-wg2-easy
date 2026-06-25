@@ -85,6 +85,45 @@ lifecycle**, not the responder.
   a custom NFQUEUE-backed `net.PacketConn`, not a real `*net.UDPConn`. Suppress or
   document inline so it isn't chased as a bug during hardening.
 
+## P1 instrumentation — LANDED (2026-06-25)
+
+The "timestamped logging on both sides" P1 asks for now ships (no behaviour
+change — evidence only). A **static trace settled the easy half**: the Node
+backend has **no periodic/automatic tunnel bounce** (zero `setInterval`; the 1 s
+UI poll only runs read-only `wg show … dump`). Every `wg-quick down/up` comes
+from exactly one caller — startup bootstrap, `updateServerSettings` (restart
+field), `regenerateKeypair`, a site-peer `__applyWithBounce`, or `Shutdown()` on
+**SIGTERM**. And a transient `netlink i/o timeout` does **not** kill the responder
+(`nfqueue.go` `errFn` returns 0). So the field log's `down … re-listen on :51821
+… down … up … NFQUEUE rule installed` is a **full Node/entrypoint restart**, and
+**P1 reduces to: what restarted the Node process?** (`run_responder` doesn't loop,
+so the reappearing install line ⇒ the entrypoint re-ran.)
+
+What was added to capture the answer on the next occurrence / a deliberate repro:
+
+- **Node — `src/lib/WireGuard.js`:** all tunnel commands now go through
+  `__tunnelExec(op, reason)`, which logs `tunnel evt=begin|ok|err op=<down|up|sync>
+  reason=<caller> ts=<ISO> …` around each `wg-quick`/`syncconf`. `reason` names the
+  caller (`bootstrap`, `settings`, `regen-key`, `sitepeer-*`, `shutdown`,
+  `saveConfig`, …) so a flap is attributable.
+- **Node — `src/server.js`:** `lifecycle evt=boot|signal|exit|unhandledRejection|
+  uncaughtException` with ISO ts + pid. The two crash handlers are the key fix: a
+  crash used to terminate Node **silently** (no handler) — the prime suspect for a
+  restart with `RestartCount=0`. They log a stack first, then preserve exit-1.
+- **Responder — `main.go` / `nfqueue.go`:** `log.SetFlags(… | Lmicroseconds |
+  LUTC)` so every responder line is UTC-µs and orderable against Node's ISO lines
+  in the same `docker logs`; plus a clean-exit line on ctx cancel.
+- **`docker-entrypoint.sh`:** `log_ts` UTC-stamps the NFQUEUE install/exit echoes,
+  pinning the entrypoint re-run.
+
+**Read the timeline** (single stream, both UTC):
+`docker logs --since 2h <ctr> 2>&1 | grep -nE 'lifecycle|tunnel evt|netlink|NFQUEUE|context cancelled'`
+The order to look for: does `lifecycle evt=unhandledRejection/uncaughtException` or
+`evt=signal sig=SIGTERM` appear **before** the `tunnel evt=… op=down`? If a crash/
+signal precedes the down, Node is the flapper and P1's fix is Node-side. If the
+`netlink i/o timeout` precedes everything, re-open P2/P3. If neither (only OOM-kill
+in `dmesg`), the fix is a memory/limits issue, not code.
+
 ## Workaround (until hardened)
 
 `RESPONDER=false` — keeps passive QUIC imitation (`IMITATE_PROTOCOL=quic` still

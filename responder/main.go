@@ -12,6 +12,13 @@ import (
 )
 
 func main() {
+	// Round 3 / P1 instrumentation: UTC microsecond timestamps on every responder
+	// log line so its events (notably `nfqueue error: netlink i/o timeout`) can be
+	// ordered against Node's ISO-8601 `tunnel`/`lifecycle` lines in the same
+	// `docker logs` stream — both UTC, both sub-second. This is the responder half
+	// of the "timestamped logging on both sides" P1 requires to pin flap causality.
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
+
 	proto := strings.ToLower(os.Getenv("IMITATE_PROTOCOL"))
 	if proto == "" {
 		proto = "none"

@@ -91,5 +91,9 @@ func runQueue(ctx context.Context, queueNum uint16, cfg Config) error {
 		return err
 	}
 	<-ctx.Done()
+	// P1 instrumentation: distinguish a clean signal-driven exit (SIGINT/SIGTERM
+	// cancels ctx) from a fatal error path (which returns up to main's log.Fatalf).
+	// If the responder dies, this line tells us whether it was asked to.
+	log.Printf("responder: context cancelled (%v) — read loop exiting cleanly", ctx.Err())
 	return nil
 }

@@ -7,6 +7,12 @@ set -e
 WG_PORT="${WG_PORT:-51820}"
 QUEUE_NUM="${RESPONDER_QUEUE:-0}"
 
+# P1 instrumentation: UTC-timestamp the responder lifecycle echoes. The reappearing
+# "NFQUEUE rule installed" line is the fingerprint of an entrypoint re-run (= Node
+# restart, the suspected flap trigger); a timestamp lets it be ordered against the
+# Node/responder logs. Second precision is enough for this coarse marker.
+log_ts() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
+
 # The connmark claim rule is only needed for the multi-RTT QUIC handshake.
 QUIC_HS="${QUIC_HANDSHAKE:-true}"
 CLAIM_RULE=false
@@ -51,12 +57,12 @@ run_responder() {
 
   flush_nfqueue_rules
   insert_nfqueue_rule
-  echo "responder: NFQUEUE rule installed on udp/${WG_PORT} (queue ${QUEUE_NUM})"
+  log_ts "responder: NFQUEUE rule installed on udp/${WG_PORT} (queue ${QUEUE_NUM})"
   /usr/bin/awg-responder &
   RESP_PID=$!
   # On responder exit, flush rules so traffic falls through to awg0.
   wait "${RESP_PID}" || true
-  echo "responder: exited; flushing NFQUEUE rules (active-probe defense off, tunnel unaffected)"
+  log_ts "responder: exited; flushing NFQUEUE rules (active-probe defense off, tunnel unaffected)"
   flush_nfqueue_rules
 }
 
