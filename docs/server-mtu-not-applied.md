@@ -1,6 +1,18 @@
 # Bug: changing MTU in the web-UI doesn't apply to the server interface
 
-Status: **confirmed in code, not fixed.** Found 2026-06-22 — set MTU in the web-UI,
+Status: **FIXED 2026-06-23** — added `mtu` to `RESTART_FIELDS`
+(`serverSettings.js`), so an MTU change now classifies as `needsRestart: true`
+and re-applies via a full `wg-quick down/up` (and `mustReimport: true`, since
+clients carry the MTU). Covered by a `classify()` test in
+`serverSettings.test.js`. `address` was evaluated and is NOT UI-editable (only the
+locked-to-/24 `defaultAddress` client template), so it was left out. Chose the
+restart path over the no-bounce `ip link set mtu` (brief flap accepted).
+
+---
+
+_Original report below._
+
+Found 2026-06-22 — set MTU in the web-UI,
 the **clients** got the new MTU but the **server's own wg0 interface kept the old
 one**, producing a server↔client MTU mismatch (the triple-awg-xray RU-exit ended up
 at 1420 while the entries were 1280; big TLS handshakes — e.g. gosuslugi.ru — wedged

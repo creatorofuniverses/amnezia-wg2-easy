@@ -96,7 +96,10 @@ function seedServerDefaults(server, seeds) {
   return server;
 }
 
-const RESTART_FIELDS = ['port', 'jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4', 'h1', 'h2', 'h3', 'h4'];
+// `mtu` is interface-level: `wg syncconf` does NOT change a live device's MTU, so an
+// MTU change must trigger a full `wg-quick down/up` (restart) or the server keeps its
+// boot-time MTU while clients get the new one — a silent server↔client mismatch.
+const RESTART_FIELDS = ['port', 'mtu', 'jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4', 'h1', 'h2', 'h3', 'h4'];
 const REIMPORT_FIELDS = ['host', ...RESTART_FIELDS];
 
 const eq = (a, b) => {

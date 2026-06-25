@@ -150,6 +150,13 @@ test('classify: port change needs restart and reimport', () => {
   assert.strictEqual(r.mustReimport, true);
 });
 
+test('classify: MTU change needs restart and reimport (applies to live wg0)', () => {
+  const r = S.classify(PREV, { mtu: 1280 });
+  assert.deepStrictEqual(r.changed, ['mtu']);
+  assert.strictEqual(r.needsRestart, true);
+  assert.strictEqual(r.mustReimport, true);
+});
+
 test('classify: obfuscation H-range change needs restart and reimport', () => {
   const r = S.classify(PREV, { h1: { min: 9, max: 10 } });
   assert.deepStrictEqual(r.changed, ['h1']);

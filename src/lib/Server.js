@@ -226,8 +226,31 @@ module.exports = class Server {
           throw createError({ status: 403 });
         }
         const { address } = await readBody(event);
-        await WireGuard.updateClientAddress({ clientId, address });
+        try {
+          await WireGuard.updateClientAddress({ clientId, address });
+        } catch (err) {
+          // Surface the real reason (e.g. overlaps a site subnet) instead of a
+          // bare "Bad Request". H3 masks a raw thrown Error AND drops `message`
+          // from a createError body — only `data` is sent through, so the reason
+          // rides in data.message (the client reads it from there).
+          throw createError({ status: err.statusCode || 500, message: err.message, data: { message: err.message } });
+        }
         return { success: true };
+      }))
+      .put('/api/wireguard/client/:clientId/allowedips', defineEventHandler(async (event) => {
+        const clientId = getRouterParam(event, 'clientId');
+        if (clientId === '__proto__' || clientId === 'constructor' || clientId === 'prototype') {
+          throw createError({ status: 403 });
+        }
+        const { allowedIPs, siteMasquerade } = await readBody(event);
+        try {
+          return await WireGuard.setClientSitePeer({ clientId, allowedIPs, siteMasquerade });
+        } catch (err) {
+          if (err.statusCode === 400) {
+            throw createError({ status: 400, message: 'Validation failed', data: { errors: err.errors } });
+          }
+          throw createError({ status: err.statusCode || 500, message: err.message });
+        }
       }))
       .get('/api/server-settings', defineEventHandler(async () => {
         return WireGuard.getServerSettings();

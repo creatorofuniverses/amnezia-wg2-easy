@@ -109,6 +109,7 @@ new Vue({
 
     clients: null,
     clientsPersist: {},
+    sitePeerSaving: {}, // clientId -> bool, in-flight site-peer save (survives the 1s refresh)
     clientDelete: null,
     clientCreate: null,
     clientCreateName: '',
@@ -239,7 +240,23 @@ new Vue({
       if (!this.authenticated) return;
 
       const clients = await this.api.getClients();
+      const prevById = {};
+      (this.clients || []).forEach((c) => {
+        prevById[c.id] = c;
+      });
       this.clients = clients.map((client) => {
+        // Preserve in-progress site-peer edits across the 1s refresh. Defining
+        // these drafts here (before the assignment below) is what makes Vue
+        // observe them, so the expander can v-model them instead of fighting
+        // the refresh that replaces every client object each tick.
+        const prev = prevById[client.id];
+        client._allowedIPsDraft = prev && prev._allowedIPsDraft !== undefined
+          ? prev._allowedIPsDraft
+          : (client.allowedIPs || '');
+        client._masqDraft = prev && prev._masqDraft !== undefined
+          ? prev._masqDraft
+          : !!client.siteMasquerade;
+
         if (client.name.includes('@') && client.name.includes('.')) {
           client.avatar = `https://gravatar.com/avatar/${sha256(client.name.toLowerCase().trim())}.jpg`;
         }
@@ -409,6 +426,31 @@ new Vue({
       this.api.updateClientAddress({ clientId: client.id, address })
         .catch((err) => alert(err.message || err.toString()))
         .finally(() => this.refresh().catch(console.error));
+    },
+    saveClientSitePeer(client, allowedIPs, siteMasquerade) {
+      // client-side guard mirrors the server (svIsCIDR already exists)
+      const list = String(allowedIPs || '').split(',').map((s) => s.trim()).filter(Boolean);
+      if (list.length && !list.every(svIsCIDR)) {
+        alert(this.$t('allowedIPsInvalid'));
+        return;
+      }
+      // Flag in-flight so the Save button shows feedback through the ~2s bounce.
+      this.$set(this.sitePeerSaving, client.id, true);
+      this.api.setClientSitePeer({ clientId: client.id, allowedIPs, siteMasquerade })
+        .catch((err) => alert((err.fieldErrors && err.fieldErrors.allowedIPs) || err.message || err.toString()))
+        .finally(() => {
+          this.$set(this.sitePeerSaving, client.id, false);
+          this.refresh().catch(console.error);
+        });
+    },
+    // Site-peer Save is enabled only when the draft differs from what's saved.
+    sitePeerDirty(client) {
+      const draftIp = (client._allowedIPsDraft || '').trim();
+      const curIp = client.allowedIPs || '';
+      return draftIp !== curIp || !!client._masqDraft !== !!client.siteMasquerade;
+    },
+    isSitePeerSaving(client) {
+      return !!this.sitePeerSaving[client.id];
     },
     toggleTheme() {
       const themes = ['light', 'dark', 'auto'];

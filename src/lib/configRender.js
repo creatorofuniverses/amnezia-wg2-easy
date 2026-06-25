@@ -1,28 +1,46 @@
 'use strict';
 
-const defaultPostUp = (server, device) => `
-iptables -t nat -A POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE;
-iptables -A INPUT -p udp -m udp --dport ${server.port} -j ACCEPT;
-iptables -A FORWARD -i wg0 -j ACCEPT;
-iptables -A FORWARD -o wg0 -j ACCEPT;
-`.split('\n').join(' ');
+// wg-quick runs PostUp/PostDown as a single ';'-joined line under `set -e`, so a
+// bare `iptables -D` for an already-absent rule aborts the rest of the chain
+// (silently skipping every rule after it — notably the site-masq rule, rendered
+// last), and a bare `iptables -A` re-appends on every `up`. Render each rule
+// idempotently and self-healing instead: add only if missing, delete every copy
+// without letting one failure abort the chain.
+const addRule = (table, rule) => {
+  const ipt = `iptables${table ? ` -t ${table}` : ''}`;
+  return `${ipt} -C ${rule} 2>/dev/null || ${ipt} -A ${rule};`;
+};
+const delRule = (table, rule) => {
+  const ipt = `iptables${table ? ` -t ${table}` : ''}`;
+  return `while ${ipt} -C ${rule} 2>/dev/null; do ${ipt} -D ${rule} || break; done;`;
+};
 
-const defaultPostDown = (server, device) => `
-iptables -t nat -D POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE;
-iptables -D INPUT -p udp -m udp --dport ${server.port} -j ACCEPT;
-iptables -D FORWARD -i wg0 -j ACCEPT;
-iptables -D FORWARD -o wg0 -j ACCEPT;
-`.split('\n').join(' ');
+const siteMasqRules = (clients, device, mk) => Object.values(clients || {})
+  .filter((c) => c.enabled && c.siteMasquerade && c.allowedIPs)
+  .flatMap((c) => c.allowedIPs.split(',').map((s) => s.trim()).filter(Boolean)
+    .map((cidr) => mk('nat', `POSTROUTING -s ${cidr} -o ${device} -j MASQUERADE`)))
+  .join(' ');
+
+const defaultHooks = (server, device, clients, mk) => [
+  mk('nat', `POSTROUTING -s ${server.defaultAddress.replace('x', '0')}/24 -o ${device} -j MASQUERADE`),
+  mk('', `INPUT -p udp -m udp --dport ${server.port} -j ACCEPT`),
+  mk('', 'FORWARD -i wg0 -j ACCEPT'),
+  mk('', 'FORWARD -o wg0 -j ACCEPT'),
+  siteMasqRules(clients, device, mk),
+].filter(Boolean).join(' ');
+
+const defaultPostUp = (server, device, clients) => defaultHooks(server, device, clients, addRule);
+const defaultPostDown = (server, device, clients) => defaultHooks(server, device, clients, delRule);
 
 const pick = (override, fallback) => (typeof override === 'string' && override !== '' ? override : fallback);
 
-function renderDefaultHooks(server, env = {}) {
+function renderDefaultHooks(server, env = {}, clients = {}) {
   const device = env.device || 'eth0';
   return {
     preUp: pick(env.preUp, ''),
-    postUp: pick(env.postUp, defaultPostUp(server, device)),
+    postUp: pick(env.postUp, defaultPostUp(server, device, clients)),
     preDown: pick(env.preDown, ''),
-    postDown: pick(env.postDown, defaultPostDown(server, device)),
+    postDown: pick(env.postDown, defaultPostDown(server, device, clients)),
   };
 }
 
@@ -61,7 +79,7 @@ ${imitateProtocol !== 'none' ? `ImitateProtocol = ${imitateProtocol}\n` : ''}`;
 [Peer]
 PublicKey = ${client.publicKey}
 ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
-}AllowedIPs = ${client.address}/32`;
+}AllowedIPs = ${client.allowedIPs && client.allowedIPs.trim() ? client.allowedIPs : `${client.address}/32`}`;
   }
   return result;
 }

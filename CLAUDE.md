@@ -37,7 +37,7 @@ cd responder && go build ./... && go test ./...   # Go 1.25; deps: quic-go, go-n
 
 - `server.js` — Entry point; starts server, handles SIGINT for graceful shutdown
 - `lib/Server.js` — H3 router with all API routes, session auth via express-session, static file serving
-- `lib/WireGuard.js` — Core VPN logic: client CRUD, config generation, `wg` CLI interaction, stats polling
+- `lib/WireGuard.js` — Core VPN logic: client CRUD, config generation, `wg` CLI interaction, stats polling; supports per-client custom AllowedIPs + optional siteMasquerade toggle for relay/site-to-site topologies
 - `lib/Util.js` — Shell exec helper (`Util.exec()`), IP validation
 - `services/` — Singleton exports of Server and WireGuard instances
 
@@ -78,6 +78,7 @@ Key config (all optional except `WG_HOST` for production):
 | `S3, S4` | AWG 2.0 padding (cookie reply, data packet) | Random |
 | `H1-H4` | Header magic ranges (format: `min-max` or single value) | Random |
 | `I1-I5` | CPS signatures (client-only, AWG 2.0) | (none) |
+| `I1_COMPAT` | Seed a baked-in legacy DNS-shaped `I1` when no explicit `I1` is set (older-client compat; explicit `I1` wins) | false |
 | `IMITATE_PROTOCOL` | Shape obfuscation to a protocol (`none\|quic\|dns\|stun\|sip`); server + client configs | none |
 | `RESPONDER` | Enable the Go active-probe responder (needs `IMITATE_PROTOCOL != none`, `NET_RAW`) | false |
 | `QUIC_HANDSHAKE` | QUIC responder: full TLS-1.3 handshake (true) vs Version-Negotiation only (false) | true |
