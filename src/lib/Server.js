@@ -226,7 +226,14 @@ module.exports = class Server {
           throw createError({ status: 403 });
         }
         const { address } = await readBody(event);
-        await WireGuard.updateClientAddress({ clientId, address });
+        try {
+          await WireGuard.updateClientAddress({ clientId, address });
+        } catch (err) {
+          // Surface the real reason (e.g. overlaps a site subnet) instead of a
+          // bare "Bad Request": a raw thrown error is masked by H3, a createError
+          // is sent through.
+          throw createError({ status: err.statusCode || 500, message: err.message });
+        }
         return { success: true };
       }))
       .put('/api/wireguard/client/:clientId/allowedips', defineEventHandler(async (event) => {
