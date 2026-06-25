@@ -23,8 +23,15 @@ class API {
     const json = await res.json();
 
     if (!res.ok) {
-      // H3 serializes errors as { message, statusCode }, not { error }.
-      throw new Error(json.message || json.error || res.statusText);
+      // H3's default error handler drops `message` from the body; the reason
+      // rides in data.message (lossless) or statusMessage (sanitized).
+      throw new Error(
+        (json.data && json.data.message)
+        || json.statusMessage
+        || json.message
+        || json.error
+        || res.statusText,
+      );
     }
 
     return json;

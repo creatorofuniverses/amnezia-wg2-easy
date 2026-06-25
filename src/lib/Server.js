@@ -230,9 +230,10 @@ module.exports = class Server {
           await WireGuard.updateClientAddress({ clientId, address });
         } catch (err) {
           // Surface the real reason (e.g. overlaps a site subnet) instead of a
-          // bare "Bad Request": a raw thrown error is masked by H3, a createError
-          // is sent through.
-          throw createError({ status: err.statusCode || 500, message: err.message });
+          // bare "Bad Request". H3 masks a raw thrown Error AND drops `message`
+          // from a createError body — only `data` is sent through, so the reason
+          // rides in data.message (the client reads it from there).
+          throw createError({ status: err.statusCode || 500, message: err.message, data: { message: err.message } });
         }
         return { success: true };
       }))
