@@ -1,6 +1,53 @@
 # Feature note: custom AllowedIPs / site-relay peers
 
-Status: **implemented 2026-06-24.** See the implementation plan at `docs/superpowers/plans/2026-06-23-custom-allowedips-site-peer.md` and the design spec at `docs/superpowers/specs/2026-06-23-custom-allowedips-site-peer-design.md`. This document is the original field report.
+Status: **implemented 2026-06-24.** See the implementation plan at `docs/superpowers/plans/2026-06-23-custom-allowedips-site-peer.md` and the design spec at `docs/superpowers/specs/2026-06-23-custom-allowedips-site-peer-design.md`. The user-facing how-to is below; the original field report (problem / scope / rationale) follows it.
+
+## Using it (web UI)
+
+Every client row has an **Advanced / site peer** expander. Leave it closed for
+normal clients — their UX is unchanged. To turn a client into a site / relay peer:
+
+1. **AllowedIPs** — comma-separated CIDRs this peer should carry, e.g.
+   `10.20.0.0/24` (a LAN/subnet behind the peer) or `0.0.0.0/0`. This **replaces**
+   the peer's default `/32`, so if the peer still needs its own tunnel address,
+   include it in the list. A peer with a non-empty AllowedIPs shows a **`site`** chip.
+2. **Masquerade this peer's traffic** — source-NAT this peer's subnet out the
+   host's WAN. Turn it on for an exit/relay so the carried subnet reaches the
+   internet via the server's public IP. (Needs the default hooks — see below.)
+3. **Save** — applies the change. The button stays grey until you actually change
+   something, and shows **Saving…** while it applies.
+
+### What happens on save
+
+- The kernel **route** for each AllowedIPs CIDR is added automatically — the tunnel
+  runs `wg-quick` on `Table = auto`, so no manual `ip route` is ever needed.
+- With Masquerade on, the matching `iptables -t nat … -j MASQUERADE` rule is added;
+  off, it's removed.
+- **The whole tunnel bounces** (`wg-quick down`/`up`, ~2 s) so every client drops
+  for a moment. This is by design for site-peer edits — normal client
+  add/edit/disable/delete does **not** bounce the tunnel.
+- **Clearing** the AllowedIPs field and saving reverts the peer to an ordinary
+  `/32` client (route + masq removed, `site` chip gone).
+
+### Rules / guardrails
+
+- **No overlapping AllowedIPs.** Each CIDR must be unique across peers — overlapping
+  ranges silently hand all return traffic to the last-configured peer. The UI
+  rejects an overlapping AllowedIPs (with the real reason inline), rejects a normal
+  client's address edit that would land inside a site subnet, and skips site subnets
+  when auto-assigning a new client's address.
+- **Masquerade needs the default hooks.** If `WG_POST_UP` / `WG_POST_DOWN` are set in
+  the environment, the default `PostUp`/`PostDown` — and therefore all site-masq
+  rules — are suppressed, and masquerade silently won't work.
+
+### Typical use case — entry → exit relay
+
+Run an entry node as a peer of this box carrying its client subnet (AllowedIPs
+`10.20.0.0/24`, masquerade **on**). Devices behind the entry then egress to the
+internet source-NAT'd to this server's public IP, and large TLS handshakes complete
+normally. (If you only need to fold a *single* device into this server's own subnet,
+a normal `/32` client already does that with zero extra config — site peers are for
+genuine foreign-subnet / subnet-carrying peers.)
 
 ## Problem
 
