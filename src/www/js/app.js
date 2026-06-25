@@ -239,7 +239,23 @@ new Vue({
       if (!this.authenticated) return;
 
       const clients = await this.api.getClients();
+      const prevById = {};
+      (this.clients || []).forEach((c) => {
+        prevById[c.id] = c;
+      });
       this.clients = clients.map((client) => {
+        // Preserve in-progress site-peer edits across the 1s refresh. Defining
+        // these drafts here (before the assignment below) is what makes Vue
+        // observe them, so the expander can v-model them instead of fighting
+        // the refresh that replaces every client object each tick.
+        const prev = prevById[client.id];
+        client._allowedIPsDraft = prev && prev._allowedIPsDraft !== undefined
+          ? prev._allowedIPsDraft
+          : (client.allowedIPs || '');
+        client._masqDraft = prev && prev._masqDraft !== undefined
+          ? prev._masqDraft
+          : !!client.siteMasquerade;
+
         if (client.name.includes('@') && client.name.includes('.')) {
           client.avatar = `https://gravatar.com/avatar/${sha256(client.name.toLowerCase().trim())}.jpg`;
         }
